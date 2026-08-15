@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Smart Bookmark Manager",
+  "version": "0.1.0",
+  "description": "Save the current tab into your Smart Bookmark Manager workspace.",
+  "action": {
+    "default_title": "Save bookmark",
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "permissions": ["activeTab", "storage", "tabs"],
+  "host_permissions": [
+    "http://localhost:3000/*",
+    "https://*.supabase.co/*"
+  ],
+  "externally_connectable": {
+    "matches": ["http://localhost:3000/*"]
+  }
+}

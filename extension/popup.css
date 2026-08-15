@@ -1,0 +1,58 @@
+:root {
+  color-scheme: light;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  color: #1f1b16;
+}
+
+body {
+  margin: 0;
+  width: 280px;
+  background: #f7f1e8;
+}
+
+main {
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 15px;
+}
+
+p,
+label {
+  font-size: 12px;
+}
+
+form,
+#paste-wrap {
+  display: grid;
+  gap: 8px;
+}
+
+input,
+select,
+textarea,
+button {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 8px;
+  border: 1px solid #d9d0c4;
+  padding: 7px 8px;
+  font: inherit;
+}
+
+button {
+  background: #3b4f9a;
+  color: white;
+  border: 0;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+#message {
+  min-height: 1em;
+  color: #3f6b4a;
+}

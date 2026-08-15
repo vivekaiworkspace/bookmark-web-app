@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Save bookmark</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Save bookmark</h1>
+      <p id="status">Loading…</p>
+      <form id="save-form" hidden>
+        <label>
+          Title
+          <input id="title" type="text" />
+        </label>
+        <label>
+          Collection
+          <select id="collection"></select>
+        </label>
+        <button type="submit">Save current tab</button>
+      </form>
+      <button id="signin" type="button" hidden>Sign in</button>
+      <label id="paste-wrap" hidden>
+        Paste session JSON
+        <textarea id="session-json" rows="4"></textarea>
+        <button id="save-session" type="button">Store session</button>
+      </label>
+      <p id="message"></p>
+    </main>
+    <script src="popup.js" type="module"></script>
+  </body>
+</html>
