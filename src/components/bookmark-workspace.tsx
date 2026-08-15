@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Bookmark as BookmarkIcon, LogOut, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 function assemble(
   links: LinkRow[],
@@ -99,6 +100,22 @@ export function BookmarkWorkspace({ email }: { email: string }) {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    setActiveLink((curr) => {
+      if (!curr) return null;
+      return bookmarks.find((b) => b.id === curr.id) ?? curr;
+    });
+  }, [bookmarks]);
+
+  useEffect(() => {
+    const busy = bookmarks.some(
+      (b) => b.scrape_status === "pending" || b.auto_tag_status === "pending",
+    );
+    if (!busy) return;
+    const timer = setInterval(() => void load(), 4000);
+    return () => clearInterval(timer);
+  }, [bookmarks, load]);
 
   const visible = useMemo(() => {
     let list = bookmarks;
@@ -227,6 +244,18 @@ export function BookmarkWorkspace({ email }: { email: string }) {
     }
     toast.success("Link saved");
     await load();
+    const ready =
+      data.scrape_status === "ready" && (data.content_raw ?? "").trim();
+    if (!ready) {
+      const enqueue = await fetch("/api/ai/enqueue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ linkId: data.id }),
+      });
+      if (!enqueue.ok && enqueue.status !== 503) {
+        toast.error("Saved, but AI enqueue failed");
+      }
+    }
   }
 
   async function toggleFavorite(link: Bookmark) {
@@ -313,6 +342,54 @@ export function BookmarkWorkspace({ email }: { email: string }) {
     else await load();
   }
 
+  async function applySuggestions(link: Bookmark) {
+    const names = link.suggested_tag_names ?? [];
+    let nextIds = link.tags.map((t) => t.id);
+    let workingTags = [...tags];
+    for (const name of names) {
+      const existing = workingTags.find(
+        (t) => t.name.toLowerCase() === name.toLowerCase(),
+      );
+      if (existing) {
+        if (!nextIds.includes(existing.id)) nextIds.push(existing.id);
+        continue;
+      }
+      if (workingTags.length >= FREE_TAG_LIMIT) {
+        toast.error(`Free tier allows ${FREE_TAG_LIMIT} tags.`);
+        continue;
+      }
+      const created = await createTag(name);
+      if (!created) continue;
+      workingTags = [...workingTags, created];
+      nextIds.push(created.id);
+    }
+    await setLinkTags(link.id, nextIds);
+    await supabase
+      .from("links")
+      .update({ suggested_tag_names: [] })
+      .eq("id", link.id);
+    await load();
+  }
+
+  async function dismissSuggestions(link: Bookmark) {
+    const { error } = await supabase
+      .from("links")
+      .update({ suggested_tag_names: [] })
+      .eq("id", link.id);
+    if (error) toast.error(error.message);
+    else await load();
+  }
+
+  async function acceptCollection(link: Bookmark) {
+    if (!link.suggested_collection_id) return;
+    await moveLink(link.id, link.suggested_collection_id);
+    await supabase
+      .from("links")
+      .update({ suggested_collection_id: null })
+      .eq("id", link.id);
+    await load();
+  }
+
   async function signOut() {
     await supabase.auth.signOut();
     router.push("/login");
@@ -347,6 +424,12 @@ export function BookmarkWorkspace({ email }: { email: string }) {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="ghost" asChild>
+              <Link href="/digests">Digests</Link>
+            </Button>
+            <Button variant="ghost" asChild>
+              <Link href="/settings">Settings</Link>
+            </Button>
             <Button onClick={() => setSaveOpen(true)}>
               <Plus />
               Save link
@@ -419,6 +502,9 @@ export function BookmarkWorkspace({ email }: { email: string }) {
         onDelete={deleteLink}
         onFavorite={(link) => void toggleFavorite(link)}
         onOpen={(link) => void openLink(link)}
+        onApplySuggestions={applySuggestions}
+        onDismissSuggestions={dismissSuggestions}
+        onAcceptCollection={acceptCollection}
       />
     </div>
   );

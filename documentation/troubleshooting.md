@@ -42,6 +42,18 @@ The extension has its own stored session. Sign in again from the popup, or paste
 
 They should still be under **All links**. Open All links and assign a collection in **Notes & tags**.
 
+## Suggested tags never appear
+
+- Confirm the AI service is running (`docker compose up` in the project folder, after `services/ai/.env` has a service role key and optional `OPENAI_API_KEY`).
+- Confirm `.env.local` has `AI_SERVICE_URL=http://localhost:8000` and the same `AI_SERVICE_SECRET` as the Python service.
+- Wait a few seconds and refresh. Cards show **AI: reading page…** while work is queued.
+- Some sites block scraping. Failed scrapes show an error on the card; tags need page text.
+- Without `OPENAI_API_KEY`, scrape can still fill content, but auto-tag stays failed.
+
+## Digests stay empty
+
+Open **Settings** and set frequency to weekly or daily, or click **Run now** on the Digests page. Run now works from the website (it does not need Docker). For background scrape/auto-tag, start the AI service with `docker compose up`.
+
 ## Still stuck
 
 Note what you clicked, the exact message, and whether you used the website or the extension. That helps whoever maintains the app.

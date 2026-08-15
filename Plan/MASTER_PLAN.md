@@ -6,7 +6,7 @@ Single source of truth for phases, steps, and progress. Split phase notes remain
 | :--- | :--- |
 | **Product** | Smart Bookmark Manager |
 | **Repo** | [vivekaiworkspace/bookmark-web-app](https://github.com/vivekaiworkspace/bookmark-web-app) |
-| **Current work** | Phase 1 complete. Next: Phase 2 |
+| **Current work** | Phase 2 in repo (run AI docker stack) |
 | **Updated** | 2026-08-15 |
 
 **Documentation rule:** When a phase’s implementation is finished, update every relevant file in [`documentation/`](../documentation/) (user guides, limits, troubleshooting) **before** marking that phase complete. New users should be able to use the new features from those guides alone.
@@ -18,7 +18,7 @@ Single source of truth for phases, steps, and progress. Split phase notes remain
 | Phase | PRD window | Status | Evidence |
 | :--- | :--- | :--- | :--- |
 | 1. Core web + extension | Weeks 1–3 | **Done** | [PR #1](https://github.com/vivekaiworkspace/bookmark-web-app/pull/1) merged to `main` (2026-08-15) |
-| 2. AI microservice + queues | Weeks 4–6 | **Not started** | — |
+| 2. AI microservice + queues | Weeks 4–6 | **In repo** | Schema applied; `services/ai/` + web UI |
 | 3. Productivity, billing, polish | Weeks 7–8 | **Not started** (blocked on Phase 2) | — |
 
 ### Step checklist
@@ -35,14 +35,14 @@ Single source of truth for phases, steps, and progress. Split phase notes remain
 
 **Phase 2**
 
-- [ ] `002_phase2.sql`: `ai_summaries`, `user_ai_settings`, scrape/auto-tag status columns, RLS
-- [ ] FastAPI service (`services/ai/`): extract, auto-tag, digest + service-role writes
-- [ ] Trafilatura + Readability scrape, Playwright fallback, tiktoken 4k–6k, persist `content_raw`
-- [ ] Redis + Celery; enqueue on link save; `pg_cron` digest trigger
-- [ ] LLM auto-tag (existing tags + up to 3 new) and collection routing
-- [ ] Daily/weekly digest worker + custom prompt override
-- [ ] Web: job status, suggested tags, digest list, prompt settings
-- [ ] Update [`documentation/`](../documentation/) for AI tags, digests, prompt settings, and new troubleshooting
+- [x] `002_phase2.sql`: `ai_summaries`, `user_ai_settings`, scrape/auto-tag status, suggested-tag columns, RLS
+- [x] FastAPI service (`services/ai/`): extract, auto-tag, digest + service-role writes
+- [x] Trafilatura + Readability scrape, Playwright fallback, tiktoken 4k–6k, persist `content_raw`
+- [x] Redis + Celery; enqueue on link save (Next.js → FastAPI → Redis; extension via DB webhook); `pg_cron` digest trigger
+- [x] LLM auto-tag (existing tags + up to 3 new) and collection routing
+- [x] Daily/weekly digest worker + custom prompt override
+- [x] Web: job status, suggested tags, digest list, prompt settings
+- [x] Update [`documentation/`](../documentation/) for AI tags, digests, prompt settings, and new troubleshooting
 
 **Phase 3**
 
@@ -126,7 +126,7 @@ flowchart LR
   Web --> Extract["/api/extract-meta"]
 ```
 
-**After Phase 2:** save still hits Postgres immediately; scrape/tag/digest run on Celery.
+**After Phase 2:** save still hits Postgres immediately; scrape/tag/digest run on Celery. Next.js POSTs FastAPI to enqueue (does not open Redis). Workers share the FastAPI codebase. See [phase-2-ai-microservice.md](phase-2-ai-microservice.md) implementation notes.
 
 ```mermaid
 flowchart LR
@@ -138,6 +138,18 @@ flowchart LR
   API --> Scrape[Trafilatura Readability Playwright]
   API --> LLM[LLM auto-tag and digest]
   API --> DB
+```
+
+Enqueue path (same components):
+
+```mermaid
+flowchart LR
+  Web[Next.js save] -->|POST enqueue| FastAPI
+  Ext[Extension save] -->|DB insert only| Postgres
+  FastAPI -->|Celery| Redis
+  Workers[Celery workers] --> ScrapeLLM
+  ScrapeLLM --> Postgres
+  Cron[pg_cron] -->|POST digest| FastAPI
 ```
 
 ---
@@ -192,19 +204,24 @@ PRD weeks 4–6. **Do not redo Phase 1.** Keep Next.js `/api/extract-meta` for f
    - `ai_summaries`: `user_id`, `collection_id`, `content`, `prompt_used`, `generated_at`; RLS
    - `user_ai_settings`: `user_id` PK, `prompt_override`, `digest_frequency` (`off` \| `weekly` \| `daily`)
    - `links.scrape_status`, `links.auto_tag_status` (`pending` \| `ready` \| `failed`)
+   - Also: `suggested_tag_names`, optional `suggested_collection_id`, optional `scrape_error` (needed for apply/dismiss UI)
    - Skip `vector` / `embedding` until Phase 3
 2. FastAPI in `services/ai/`
    - `POST /api/v1/extract` — Trafilatura → Readability → Playwright; tiktoken 4,000–6,000 tokens
    - `POST /api/v1/auto-tag` — map to existing tags, suggest up to 3 new, optional collection; honor 10-tag free cap when inserting
-   - Digest worker — recent/unread links, custom prompt, write `ai_summaries`
+   - Digest worker — links in the last period (`created_at`), custom prompt, write `ai_summaries`
 3. Redis + Celery jobs: `extract_content`, `auto_tag`, `digest`
-4. Next.js enqueues extract + auto-tag after save (non-blocking)
-5. `pg_cron` (or scheduled function) POSTs digest jobs when frequency ≠ `off`
+4. Next.js enqueues extract + auto-tag after save (non-blocking): server route → FastAPI → Redis. Extension saves: DB webhook/trigger or poll `pending` (extension does not talk to Redis)
+5. `pg_cron` + `pg_net` (or scheduled Edge Function) POSTs digest jobs when frequency ≠ `off`. Enable extensions in the Supabase dashboard.
 6. UI: scrape/tag status, apply/dismiss suggested tags, settings for prompt + frequency, digests list
-7. Deploy FastAPI + Redis + worker (Railway or Fly.io)
+7. Deploy FastAPI + Redis + worker (Railway or Fly.io). Local: docker-compose for Redis + API + worker
 8. **Update [`documentation/`](../documentation/)** for auto-tag, digests, prompt settings, and troubleshooting
 
-**Auth:** Next.js and cron send `AI_SERVICE_SECRET`. FastAPI uses Supabase **service role** only for job writes, always filtered by job `user_id`.
+**Auth:** Next.js and cron send `AI_SERVICE_SECRET` (secret stays on the server, not in the browser). FastAPI uses Supabase **service role** only for job writes, always filtered by job `user_id`.
+
+**Scrape:** block private/loopback URLs; Playwright only if extract is too thin; retries idempotent by `link_id`. Collection routing is a **suggestion** the user confirms.
+
+**Detail:** [phase-2-ai-microservice.md](phase-2-ai-microservice.md) (implementation notes). Do not change this phase’s product or stack.
 
 **Gating:** PRD marks auto-tag as Pro. **Ship AI for all users in Phase 2**; Stripe gates in Phase 3.
 
@@ -216,9 +233,11 @@ PRD weeks 4–6. **Do not redo Phase 1.** Keep Next.js `/api/extract-meta` for f
 ### Verification
 
 - Save a link → `content_raw` fills, tags suggested
+- Extension save also gets scrape + suggested tags
 - Custom prompt changes digest wording
 - Cron creates `ai_summaries` for daily/weekly users
 - RLS: user A cannot read user B summaries
+- Auto-tag respects the 10-tag cap; SSRF targets rejected
 - Documentation updated for Phase 2 features
 
 ---

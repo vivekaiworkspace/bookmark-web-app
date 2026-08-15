@@ -71,6 +71,18 @@ export function LinkCard({
             ))}
           </div>
         )}
+        {(link.scrape_status === "pending" ||
+          link.auto_tag_status === "pending") && (
+          <p className="text-xs text-muted-foreground">AI: reading page…</p>
+        )}
+        {link.scrape_status === "failed" && (
+          <p className="text-xs text-destructive">
+            Scrape failed{link.scrape_error ? `: ${link.scrape_error}` : ""}
+          </p>
+        )}
+        {(link.suggested_tag_names?.length ?? 0) > 0 && (
+          <p className="text-xs text-primary">Suggested tags available</p>
+        )}
         {link.note && (
           <p className="line-clamp-2 text-xs text-muted-foreground">{link.note}</p>
         )}
