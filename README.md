@@ -2,7 +2,7 @@
 
 **New here?** Read the [user guide](documentation/README.md) (getting started, sign-in, workspace, extension).
 
-Phase 1 MVP is **complete**. Phase 2 (AI scrape, auto-tag, digests) is **in the repo**.
+Phase 1 MVP is **complete**. Phase 2 is in draft [PR #3](https://github.com/vivekaiworkspace/bookmark-web-app/pull/3).
 
 Full roadmap: [Plan/MASTER_PLAN.md](Plan/MASTER_PLAN.md).
 
@@ -41,17 +41,21 @@ Open [http://localhost:3000](http://localhost:3000).
 
 Env files:
 
-- [`.env.example`](.env.example) — template (`AI_SERVICE_URL`, `AI_SERVICE_SECRET`)
+- [`.env.example`](.env.example) — template (`AI_SERVICE_URL`, `AI_SERVICE_SECRET`, optional `OPENAI_API_KEY`)
 - `.env.local` — local keys (gitignored)
 - [`services/ai/.env.example`](services/ai/.env.example) — Python service
 - [`extension/config.js`](extension/config.js) — same URL and anon key for the extension
 
 Set `NEXT_PUBLIC_GOOGLE_AUTH=true` to show **Continue with Google**.
 
-### AI service (Phase 2)
+### AI (Phase 2)
+
+**Digests (no Docker):** add optional `OPENAI_API_KEY` to `.env.local`. Open **Digests** → **Run now**. Without that key you still get a markdown list of recent links.
+
+**Background scrape and auto-tag** need the Python stack:
 
 1. Copy `services/ai/.env.example` to `services/ai/.env`.
-2. Set `SUPABASE_SERVICE_ROLE_KEY` (Dashboard → Settings → API) and optional `OPENAI_API_KEY`.
+2. Set `SUPABASE_SERVICE_ROLE_KEY` (Dashboard → Settings → API) and `OPENAI_API_KEY`.
 3. Use the same `AI_SERVICE_SECRET` as `.env.local`.
 4. Start Redis, API, and worker:
 
@@ -59,7 +63,7 @@ Set `NEXT_PUBLIC_GOOGLE_AUTH=true` to show **Continue with Google**.
 docker compose up --build
 ```
 
-API: [http://localhost:8000/health](http://localhost:8000/health). Without this stack, bookmarks still save; scrape/tag/digest stay pending.
+API: [http://localhost:8000/health](http://localhost:8000/health). Without this stack, bookmarks still save; suggested tags stay empty until a worker runs.
 
 `pg_cron` to call `/api/v1/jobs` with `{"type":"digest_tick"}` is optional once the API is on a public URL. Locally, Celery beat polls pending links (including extension saves) and runs digest ticks hourly (UTC).
 

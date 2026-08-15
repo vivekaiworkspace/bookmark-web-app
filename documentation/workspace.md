@@ -88,4 +88,4 @@ After you save, the app reads the page in the background (the save itself stays 
 - **Digests** (top right) lists summaries of links saved in the last day or week. **Run now** creates one immediately.
 - **Settings** (top right) sets digest frequency (off / weekly / daily, UTC) and optional instructions for how summaries are written.
 
-The AI worker must be running for scrape, tags, and digests. If it is not, links still save; suggestions stay empty.
+The AI worker (`docker compose up`) is only needed for **suggested tags** and filling page text. **Run now** on Digests works from the website alone. If the worker is not running, links still save; suggestions stay empty.

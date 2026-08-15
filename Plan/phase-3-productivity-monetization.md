@@ -21,7 +21,7 @@ todos:
 
 # Smart Bookmark Manager — Phase 3 Productivity, monetization, polish
 
-**Status: planned (after [Phase 2](phase-2-ai-microservice.md)).**  
+**Status: planned (after [Phase 2](phase-2-ai-microservice.md) is merged).**  
 PRD Phase 3 (weeks 7–8).
 
 ## Goals

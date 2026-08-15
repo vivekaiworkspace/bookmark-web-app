@@ -7,7 +7,7 @@
 - Search by text, filter by tags (AND/OR), sort
 - Save from the website or the browser extension
 - Background page scrape and **suggested tags**
-- **Digests** of recently saved links, with optional custom instructions
+- **Digests** of recently saved links (**Run now**, or scheduled if the worker is running), with optional custom instructions
 
 ## Current limits (no paid plans yet)
 

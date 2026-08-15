@@ -11,5 +11,5 @@ Per-phase snapshots (same content, split):
 | Phase | File | Status |
 | :--- | :--- | :--- |
 | 1. Core web + extension | [phase-1-mvp.md](phase-1-mvp.md) | Completed and merged |
-| 2. AI microservice + queues | [phase-2-ai-microservice.md](phase-2-ai-microservice.md) | Implemented in repo |
+| 2. AI microservice + queues | [phase-2-ai-microservice.md](phase-2-ai-microservice.md) | Implemented ([PR #3](https://github.com/vivekaiworkspace/bookmark-web-app/pull/3) draft) |
 | 3. Productivity, billing, polish | [phase-3-productivity-monetization.md](phase-3-productivity-monetization.md) | Planned (after Phase 2) |
