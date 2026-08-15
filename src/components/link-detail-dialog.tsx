@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Bookmark, Collection, Tag } from "@/lib/types";
+import type { Bookmark, Collection, Reminder, Tag } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -35,6 +35,9 @@ export function LinkDetailDialog({
   onApplySuggestions,
   onDismissSuggestions,
   onAcceptCollection,
+  reminder,
+  isPro,
+  onSaveReminder,
 }: {
   link: Bookmark | null;
   collections: Collection[];
@@ -51,12 +54,16 @@ export function LinkDetailDialog({
   onApplySuggestions: (link: Bookmark) => Promise<void>;
   onDismissSuggestions: (link: Bookmark) => Promise<void>;
   onAcceptCollection: (link: Bookmark) => Promise<void>;
+  reminder: Reminder | null;
+  isPro: boolean;
+  onSaveReminder: (linkId: string, remindAt: string | null) => Promise<void>;
 }) {
   const [note, setNote] = useState("");
   const [preview, setPreview] = useState(false);
   const [tagIds, setTagIds] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
   const [collectionId, setCollectionId] = useState("");
+  const [remindAt, setRemindAt] = useState("");
 
   useEffect(() => {
     if (!link) return;
@@ -64,7 +71,16 @@ export function LinkDetailDialog({
     setTagIds(link.tags.map((t) => t.id));
     setCollectionId(link.collection_id ?? "");
     setPreview(false);
-  }, [link]);
+    if (reminder?.remind_at) {
+      const d = new Date(reminder.remind_at);
+      const pad = (n: number) => String(n).padStart(2, "0");
+      setRemindAt(
+        `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`,
+      );
+    } else {
+      setRemindAt("");
+    }
+  }, [link, reminder]);
 
   if (!link) return null;
   const current = link;
@@ -167,7 +183,7 @@ export function LinkDetailDialog({
           </Select>
         </div>
         <div className="space-y-2">
-          <p className="text-sm font-medium">Tags ({tags.length}/{tagLimit})</p>
+          <p className="text-sm font-medium">Tags ({tags.length}/{tagLimit >= 1000 ? "∞" : tagLimit})</p>
           <div className="flex flex-wrap gap-1.5">
             {tags.map((tag) => {
               const on = tagIds.includes(tag.id);
@@ -230,6 +246,37 @@ export function LinkDetailDialog({
             <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={8} />
           )}
           <Button onClick={() => void onSaveNote(link.id, note)}>Save note</Button>
+        </div>
+        <div className="space-y-2">
+          <p className="text-sm font-medium">Reminder {isPro ? "" : "(Pro)"}</p>
+          <Input
+            type="datetime-local"
+            value={remindAt}
+            disabled={!isPro}
+            onChange={(e) => setRemindAt(e.target.value)}
+          />
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              disabled={!isPro || !remindAt}
+              onClick={() => {
+                if (!remindAt) return;
+                void onSaveReminder(current.id, new Date(remindAt).toISOString());
+              }}
+            >
+              Save reminder
+            </Button>
+            {reminder ? (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!isPro}
+                onClick={() => void onSaveReminder(current.id, null)}
+              >
+                Clear
+              </Button>
+            ) : null}
+          </div>
         </div>
       </DialogContent>
     </Dialog>

@@ -77,8 +77,21 @@ export async function createUserDigest() {
     .eq("user_id", user.id)
     .maybeSingle();
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("plan")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const isPro = profile?.plan === "pro";
+  const prompt = isPro ? (settings?.prompt_override ?? null) : null;
+  const frequency = isPro
+    ? settings?.digest_frequency
+    : settings?.digest_frequency === "daily"
+      ? "weekly"
+      : settings?.digest_frequency;
+
   const since = new Date(
-    Date.now() - windowHours(settings?.digest_frequency) * 3600 * 1000,
+    Date.now() - windowHours(frequency) * 3600 * 1000,
   ).toISOString();
 
   const { data: links, error: linkError } = await supabase
@@ -92,7 +105,6 @@ export async function createUserDigest() {
   }
 
   const list = (links ?? []) as LinkBrief[];
-  const prompt = settings?.prompt_override ?? null;
   let content = await llmDigest(list, prompt);
   if (!content) content = markdownFallback(list);
 
@@ -103,6 +115,7 @@ export async function createUserDigest() {
       collection_id: null,
       content,
       prompt_used: prompt,
+      notify_sent: false,
     })
     .select()
     .single();

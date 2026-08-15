@@ -2,11 +2,25 @@ import logging
 from datetime import datetime, timedelta, timezone
 
 from app.db import get_db
-from app.llm import suggest_tags, write_digest
+from app.llm import embed_text, suggest_tags, write_digest
 from app.scrape import scrape_url
 from app.ssrf import UnsafeUrlError
 
 logger = logging.getLogger(__name__)
+
+
+def _is_pro(user_id: str) -> bool:
+    db = get_db()
+    rows = (
+        db.table("profiles")
+        .select("plan")
+        .eq("user_id", user_id)
+        .limit(1)
+        .execute()
+        .data
+        or []
+    )
+    return bool(rows and rows[0].get("plan") == "pro")
 
 
 def _link(link_id: str, user_id: str) -> dict | None:
@@ -68,11 +82,25 @@ def extract_content(link_id: str, user_id: str, force: bool = False) -> dict:
         patch["title"] = result["title"][:300]
     if result.get("og_image_url") and not row.get("og_image_url"):
         patch["og_image_url"] = result["og_image_url"]
+    text_for_embed = result["text"] or row.get("title") or row.get("url") or ""
+    embedding = embed_text(text_for_embed)
+    if embedding:
+        patch["embedding"] = embedding
     db.table("links").update(patch).eq("id", link_id).eq("user_id", user_id).execute()
     return {"ok": True, "skipped": False}
 
 
 def auto_tag(link_id: str, user_id: str) -> dict:
+    if not _is_pro(user_id):
+        db = get_db()
+        db.table("links").update(
+            {
+                "auto_tag_status": "ready",
+                "suggested_tag_names": [],
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+        ).eq("id", link_id).eq("user_id", user_id).execute()
+        return {"ok": True, "skipped": True, "reason": "free_plan"}
     row = _link(link_id, user_id)
     if not row:
         return {"ok": False, "error": "Link not found"}
@@ -173,6 +201,23 @@ def digest_for_user(
         or []
     )
     prompt = settings_row[0].get("prompt_override") if settings_row else None
+    if not _is_pro(user_id):
+        prompt = None
+        if freq == "daily":
+            freq = "weekly"
+            hours = 24 * 7
+            since = datetime.now(timezone.utc) - timedelta(hours=hours)
+            links = (
+                db.table("links")
+                .select("title,url,domain,content_raw,created_at")
+                .eq("user_id", user_id)
+                .gte("created_at", since.isoformat())
+                .order("created_at", desc=True)
+                .limit(40)
+                .execute()
+                .data
+                or []
+            )
     if not links:
         content = "_No links saved in this period._"
     else:
@@ -211,6 +256,8 @@ def digest_tick() -> int:
     now = datetime.now(timezone.utc)
     for row in users:
         freq = row["digest_frequency"]
+        if freq == "daily" and not _is_pro(row["user_id"]):
+            freq = "weekly"
         window = timedelta(hours=24 if freq == "daily" else 24 * 7)
         latest = (
             db.table("ai_summaries")

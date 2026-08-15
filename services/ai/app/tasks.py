@@ -1,6 +1,9 @@
 from app.celery_app import celery
 from app.pipeline import digest_for_user, digest_tick, run_extract_and_tag
 from app.db import get_db
+from app.config import settings
+from app.llm import embed_text
+import urllib.request
 
 
 @celery.task(
@@ -38,4 +41,39 @@ def poll_pending_task():
     )
     for row in rows:
         extract_and_tag_task.delay(row["id"], row["user_id"])
+    missing = (
+        db.table("links")
+        .select("id,user_id,title,url,content_raw")
+        .is_("embedding", "null")
+        .neq("content_raw", None)
+        .limit(10)
+        .execute()
+        .data
+        or []
+    )
+    for row in missing:
+        text = row.get("content_raw") or row.get("title") or row.get("url") or ""
+        embedding = embed_text(text)
+        if embedding:
+            db.table("links").update({"embedding": embedding}).eq("id", row["id"]).eq(
+                "user_id", row["user_id"]
+            ).execute()
     return len(rows)
+
+
+@celery.task(name="app.tasks.notify_tick_task")
+def notify_tick_task():
+    if not settings.cron_secret:
+        return {"ok": False, "error": "CRON_SECRET not set"}
+    url = settings.app_url.rstrip("/") + "/api/cron/notify"
+    req = urllib.request.Request(
+        url,
+        data=b"{}",
+        headers={
+            "Content-Type": "application/json",
+            "X-Cron-Secret": settings.cron_secret,
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=30) as response:
+        return {"ok": True, "status": response.status}

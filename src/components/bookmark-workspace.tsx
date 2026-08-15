@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { FREE_COLLECTION_LIMIT, FREE_TAG_LIMIT } from "@/lib/limits";
+import { collectionLimit, isPro as planIsPro, tagLimit } from "@/lib/plan";
 import { COLLECTION_COLORS, TAG_COLORS } from "@/lib/colors";
 import type {
   Bookmark,
@@ -10,6 +10,8 @@ import type {
   LinkRow,
   LinkTag,
   Note,
+  Plan,
+  Reminder,
   SortMode,
   Tag,
   TagLogic,
@@ -64,6 +66,16 @@ export function BookmarkWorkspace({ email }: { email: string }) {
   const [saveOpen, setSaveOpen] = useState(false);
   const [activeLink, setActiveLink] = useState<Bookmark | null>(null);
   const [loading, setLoading] = useState(true);
+  const [plan, setPlan] = useState<Plan>("free");
+  const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [semantic, setSemantic] = useState(false);
+  const [semanticIds, setSemanticIds] = useState<string[] | null>(null);
+  const [asking, setAsking] = useState(false);
+  const [askAnswer, setAskAnswer] = useState<string | null>(null);
+
+  const colLimit = collectionLimit(plan);
+  const tagCap = tagLimit(plan);
+  const pro = planIsPro(plan);
 
   const load = useCallback(async () => {
     const { data: userData } = await supabase.auth.getUser();
@@ -71,12 +83,14 @@ export function BookmarkWorkspace({ email }: { email: string }) {
 
     await supabase.rpc("ensure_inbox");
 
-    const [cRes, tRes, lRes, ltRes, nRes] = await Promise.all([
+    const [cRes, tRes, lRes, ltRes, nRes, pRes, rRes] = await Promise.all([
       supabase.from("collections").select("*").order("sort_order").order("created_at"),
       supabase.from("tags").select("*").order("name"),
       supabase.from("links").select("*").order("created_at", { ascending: false }),
       supabase.from("link_tags").select("*"),
       supabase.from("notes").select("*"),
+      supabase.from("profiles").select("plan").eq("user_id", userData.user.id).maybeSingle(),
+      supabase.from("reminders").select("*").eq("status", "pending"),
     ]);
 
     if (cRes.error) toast.error(cRes.error.message);
@@ -86,6 +100,8 @@ export function BookmarkWorkspace({ email }: { email: string }) {
     const cols = (cRes.data ?? []) as Collection[];
     setCollections(cols);
     setTags((tRes.data ?? []) as Tag[]);
+    setPlan(pRes.data?.plan === "pro" ? "pro" : "free");
+    setReminders((rRes.data ?? []) as Reminder[]);
     setBookmarks(
       assemble(
         (lRes.data ?? []) as LinkRow[],
@@ -132,6 +148,12 @@ export function BookmarkWorkspace({ email }: { email: string }) {
       });
     }
     const q = query.trim().toLowerCase();
+    if (semantic && semanticIds) {
+      const order = new Map(semanticIds.map((id, i) => [id, i]));
+      list = list.filter((b) => order.has(b.id));
+      list.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+      return list;
+    }
     if (q) {
       list = list.filter((b) =>
         [b.title, b.url, b.domain ?? "", b.note]
@@ -154,11 +176,15 @@ export function BookmarkWorkspace({ email }: { email: string }) {
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
     return copy;
-  }, [bookmarks, activeCollectionId, selectedTagIds, tagLogic, query, sort]);
+  }, [bookmarks, activeCollectionId, selectedTagIds, tagLogic, query, sort, semantic, semanticIds]);
 
   async function addCollection(name: string, color: string) {
-    if (collections.length >= FREE_COLLECTION_LIMIT) {
-      toast.error(`Free tier allows ${FREE_COLLECTION_LIMIT} collections.`);
+    if (collections.length >= colLimit) {
+      toast.error(
+        pro
+          ? "Could not add collection"
+          : `Free tier allows ${colLimit} collections.`,
+      );
       return;
     }
     const { data: userData } = await supabase.auth.getUser();
@@ -301,8 +327,8 @@ export function BookmarkWorkspace({ email }: { email: string }) {
   }
 
   async function createTag(name: string) {
-    if (tags.length >= FREE_TAG_LIMIT) {
-      toast.error(`Free tier allows ${FREE_TAG_LIMIT} tags.`);
+    if (tags.length >= tagCap) {
+      toast.error(pro ? "Could not add tag" : `Free tier allows ${tagCap} tags.`);
       return null;
     }
     const { data: userData } = await supabase.auth.getUser();
@@ -354,8 +380,8 @@ export function BookmarkWorkspace({ email }: { email: string }) {
         if (!nextIds.includes(existing.id)) nextIds.push(existing.id);
         continue;
       }
-      if (workingTags.length >= FREE_TAG_LIMIT) {
-        toast.error(`Free tier allows ${FREE_TAG_LIMIT} tags.`);
+      if (workingTags.length >= tagCap) {
+        toast.error(pro ? "Tag limit reached" : `Free tier allows ${tagCap} tags.`);
         continue;
       }
       const created = await createTag(name);
@@ -390,6 +416,103 @@ export function BookmarkWorkspace({ email }: { email: string }) {
     await load();
   }
 
+  async function saveReminder(linkId: string, remindAt: string | null) {
+    if (!pro) {
+      toast.error("Reminders require Pro");
+      return;
+    }
+    const existing = reminders.find(
+      (r) => r.link_id === linkId && r.status === "pending",
+    );
+    if (!remindAt) {
+      if (existing) {
+        const { error } = await supabase
+          .from("reminders")
+          .update({ status: "dismissed" })
+          .eq("id", existing.id);
+        if (error) toast.error(error.message);
+        else toast.success("Reminder cleared");
+      }
+      await load();
+      return;
+    }
+    if (existing) {
+      const { error } = await supabase
+        .from("reminders")
+        .update({
+          remind_at: remindAt,
+          is_triggered: false,
+          status: "pending",
+        })
+        .eq("id", existing.id);
+      if (error) toast.error(error.message);
+      else toast.success("Reminder updated");
+    } else {
+      const { data: userData } = await supabase.auth.getUser();
+      const { error } = await supabase.from("reminders").insert({
+        link_id: linkId,
+        user_id: userData.user!.id,
+        remind_at: remindAt,
+        status: "pending",
+        is_triggered: false,
+      });
+      if (error) toast.error(error.message);
+      else toast.success("Reminder set");
+    }
+    await load();
+  }
+
+  useEffect(() => {
+    if (!semantic || !pro) {
+      setSemanticIds(null);
+      return;
+    }
+    const q = query.trim();
+    if (q.length < 2) {
+      setSemanticIds(null);
+      return;
+    }
+    const handle = setTimeout(() => {
+      void (async () => {
+        const res = await fetch("/api/search/semantic", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: q }),
+        });
+        const body = (await res.json()) as {
+          results?: { id: string }[];
+          error?: string;
+        };
+        if (!res.ok) {
+          toast.error(body.error ?? "Semantic search failed");
+          setSemanticIds([]);
+          return;
+        }
+        setSemanticIds((body.results ?? []).map((row) => row.id));
+      })();
+    }, 350);
+    return () => clearTimeout(handle);
+  }, [semantic, query, pro]);
+
+  async function askLinks() {
+    const question = query.trim() || window.prompt("Ask about your saved links");
+    if (!question) return;
+    setAsking(true);
+    setAskAnswer(null);
+    try {
+      const res = await fetch("/api/search/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question }),
+      });
+      const body = (await res.json()) as { answer?: string; error?: string };
+      if (!res.ok) toast.error(body.error ?? "Ask failed");
+      else setAskAnswer(body.answer ?? "");
+    } finally {
+      setAsking(false);
+    }
+  }
+
   async function signOut() {
     await supabase.auth.signOut();
     router.push("/login");
@@ -412,7 +535,8 @@ export function BookmarkWorkspace({ email }: { email: string }) {
         onDelete={deleteCollection}
         onMove={moveCollection}
         colors={COLLECTION_COLORS}
-        limit={FREE_COLLECTION_LIMIT}
+        limit={colLimit}
+        isPro={pro}
       />
       <main className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between gap-4 border-b px-6 py-4">
@@ -424,6 +548,9 @@ export function BookmarkWorkspace({ email }: { email: string }) {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="ghost" asChild>
+              <Link href="/read-today">Read Today</Link>
+            </Button>
             <Button variant="ghost" asChild>
               <Link href="/digests">Digests</Link>
             </Button>
@@ -453,7 +580,21 @@ export function BookmarkWorkspace({ email }: { email: string }) {
           onQuery={setQuery}
           sort={sort}
           onSort={setSort}
+          semantic={semantic}
+          onSemantic={setSemantic}
+          canSemantic={pro}
+          onAsk={() => void askLinks()}
+          asking={asking}
         />
+        {askAnswer ? (
+          <div className="border-b px-6 py-3">
+            <p className="text-xs font-medium text-muted-foreground">Ask</p>
+            <pre className="mt-1 whitespace-pre-wrap text-sm">{askAnswer}</pre>
+            <Button size="sm" variant="ghost" onClick={() => setAskAnswer(null)}>
+              Dismiss
+            </Button>
+          </div>
+        ) : null}
         <section className="flex-1 overflow-auto p-6">
           {loading ? (
             <p className="text-sm text-muted-foreground">Loading bookmarks…</p>
@@ -485,7 +626,7 @@ export function BookmarkWorkspace({ email }: { email: string }) {
         collections={collections}
         tags={tags}
         defaultCollectionId={defaultCollectionId}
-        tagLimit={FREE_TAG_LIMIT}
+        tagLimit={tagCap}
         onCreateTag={createTag}
         onSave={saveLink}
       />
@@ -493,7 +634,7 @@ export function BookmarkWorkspace({ email }: { email: string }) {
         link={activeLink}
         collections={collections}
         tags={tags}
-        tagLimit={FREE_TAG_LIMIT}
+        tagLimit={tagCap}
         onClose={() => setActiveLink(null)}
         onCreateTag={createTag}
         onSaveNote={saveNote}
@@ -505,6 +646,13 @@ export function BookmarkWorkspace({ email }: { email: string }) {
         onApplySuggestions={applySuggestions}
         onDismissSuggestions={dismissSuggestions}
         onAcceptCollection={acceptCollection}
+        reminder={
+          activeLink
+            ? reminders.find((r) => r.link_id === activeLink.id) ?? null
+            : null
+        }
+        isPro={pro}
+        onSaveReminder={saveReminder}
       />
     </div>
   );

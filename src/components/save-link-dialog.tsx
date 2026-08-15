@@ -160,7 +160,7 @@ export function SaveLinkDialog({
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Tags ({tags.length}/{tagLimit})</Label>
+                <Label>Tags ({tags.length}/{tagLimit >= 1000 ? "∞" : tagLimit})</Label>
                 <div className="flex flex-wrap gap-1.5">
                   {tags.map((tag) => {
                     const on = tagIds.includes(tag.id);

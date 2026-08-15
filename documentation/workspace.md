@@ -15,7 +15,7 @@ A collection is a folder for a topic or project (for example Inbox, Work, Readin
 1. Click the folder-plus button next to **Collections**.
 2. Enter a name, pick a color, click **Save**.
 
-You can have **up to 3 collections** on the current free plan. The sidebar shows how many you have used.
+You can have **up to 3 collections** on Free, or unlimited on [Pro](billing.md). The sidebar shows how many you have used.
 
 ### Rename, reorder, or delete
 
@@ -58,21 +58,21 @@ In **Notes & tags** you can:
 
 Tags are **global**: a tag you create is available on every collection.
 
-You can have **up to 10 tags** on the current free plan.
+You can have **up to 10 tags** on Free, or unlimited on [Pro](billing.md).
 
 ## Search, tags filter, and sort
 
 Above the cards:
 
-- **Search** looks in titles, URLs, and notes.
+- **Search** looks in titles, URLs, and notes. Pro users can turn on **Semantic** or **Ask links** — see [Search](search.md).
 - **Newest / Last opened / Favorites** changes the order.
 - Click tag chips to filter. **Tags: AND** means the link must have *all* selected tags. Click the button to switch to **OR** (*any* selected tag).
 
 Click a tag chip again to stop filtering by it.
 
-## What is not in this screen yet
+## What is not in this screen
 
-Reminders, email/push notifications, and search by meaning are Phase 3. See [Limits and what’s next](limits-and-whats-next.md).
+Chrome Web Store listing is still out of scope. Reminders live in **Notes & tags** and **Read Today**. Billing is under **Settings**. See [Limits and what’s next](limits-and-whats-next.md).
 
 ## AI on a saved link
 
@@ -86,6 +86,6 @@ After you save, the app reads the page in the background (the save itself stays 
 ## Digests and prompt settings
 
 - **Digests** (top right) lists summaries of links saved in the last day or week. **Run now** creates one immediately.
-- **Settings** (top right) sets digest frequency (off / weekly / daily, UTC) and optional instructions for how summaries are written.
+- **Settings** (top right) sets digest frequency (off / weekly / daily, UTC), optional Pro instructions, plan/billing, and browser push.
 
 The AI worker (`docker compose up`) is only needed for **suggested tags** and filling page text. **Run now** on Digests works from the website alone. If the worker is not running, links still save; suggestions stay empty.

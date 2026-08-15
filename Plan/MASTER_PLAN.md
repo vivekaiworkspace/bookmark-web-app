@@ -6,7 +6,7 @@ Single source of truth for phases, steps, and progress. Split phase notes remain
 | :--- | :--- |
 | **Product** | Smart Bookmark Manager |
 | **Repo** | [vivekaiworkspace/bookmark-web-app](https://github.com/vivekaiworkspace/bookmark-web-app) |
-| **Current work** | Phase 2 in [PR #3](https://github.com/vivekaiworkspace/bookmark-web-app/pull/3) (draft). Next: merge, then Phase 3 |
+| **Current work** | Phase 3 on `cursor/phase-3-productivity-monetization` (after Phase 2) |
 | **Updated** | 2026-08-15 |
 
 **Documentation rule:** When a phase’s implementation is finished, update every relevant file in [`documentation/`](../documentation/) (user guides, limits, troubleshooting) **before** marking that phase complete. New users should be able to use the new features from those guides alone.
@@ -19,7 +19,7 @@ Single source of truth for phases, steps, and progress. Split phase notes remain
 | :--- | :--- | :--- | :--- |
 | 1. Core web + extension | Weeks 1–3 | **Done** | [PR #1](https://github.com/vivekaiworkspace/bookmark-web-app/pull/1) merged to `main` (2026-08-15) |
 | 2. AI microservice + queues | Weeks 4–6 | **In PR** | Draft [PR #3](https://github.com/vivekaiworkspace/bookmark-web-app/pull/3); schema applied |
-| 3. Productivity, billing, polish | Weeks 7–8 | **Not started** (after Phase 2 merge) | — |
+| 3. Productivity, billing, polish | Weeks 7–8 | **In progress** | Branch `cursor/phase-3-productivity-monetization` |
 
 ### Step checklist
 
@@ -48,11 +48,11 @@ Single source of truth for phases, steps, and progress. Split phase notes remain
 
 **Phase 3**
 
-- [ ] Stripe billing, customer portal, Free vs Pro gates
-- [ ] `reminders` table, datetime picker, Read Today queue
-- [ ] Resend email + Web Push (reminders and digests)
-- [ ] `pgvector` embeddings and semantic search / link Q&A
-- [ ] Update [`documentation/`](../documentation/) for reminders, Read Today, notifications, billing, and semantic search
+- [x] Stripe billing, customer portal, Free vs Pro gates
+- [x] `reminders` table, datetime picker, Read Today queue
+- [x] Resend email + Web Push (reminders and digests)
+- [x] `pgvector` embeddings and semantic search / link Q&A
+- [x] Update [`documentation/`](../documentation/) for reminders, Read Today, notifications, billing, and semantic search
 
 ---
 
@@ -307,4 +307,4 @@ Phase 1 already enforces 3 collections / 10 tags in the UI.
 | [phase-2-ai-microservice.md](phase-2-ai-microservice.md) | Phase 2 detail |
 | [phase-3-productivity-monetization.md](phase-3-productivity-monetization.md) | Phase 3 detail |
 | [`supabase/migrations/001_phase1.sql`](../supabase/migrations/001_phase1.sql) | Phase 1 schema |
-| [`supabase/migrations/002_phase2.sql`](../supabase/migrations/002_phase2.sql) | Phase 2 schema (applied live) |
+| [`supabase/migrations/003_phase3.sql`](../supabase/migrations/003_phase3.sql) | Phase 3 schema (applied live) |

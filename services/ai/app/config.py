@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     playwright_enabled: bool = False
     free_tag_limit: int = 10
     token_cap: int = 5000
+    app_url: str = "http://localhost:3000"
+    cron_secret: str = ""
 
 
 settings = Settings()

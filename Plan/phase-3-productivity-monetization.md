@@ -4,24 +4,24 @@ overview: "Phase 3 from the PRD (weeks 7–8): Stripe Pro gating, Resend + Web P
 todos:
   - id: stripe
     content: Stripe billing, customer portal, Free vs Pro feature gates (collections, tags, AI, digests, semantic search)
-    status: pending
+    status: completed
   - id: reminders
     content: reminders table, datetime picker, Read Today queue, mark complete/dismiss
-    status: pending
+    status: completed
   - id: notify
     content: Resend transactional emails and Web Push for reminders and digest delivery
-    status: pending
+    status: completed
   - id: embeddings
     content: pgvector embeddings on saved content and natural-language semantic search / link Q&A
-    status: pending
+    status: completed
   - id: docs
     content: Update documentation/ for reminders, Read Today, notifications, billing, and semantic search
-    status: pending
+    status: completed
 ---
 
 # Smart Bookmark Manager — Phase 3 Productivity, monetization, polish
 
-**Status: planned (after [Phase 2](phase-2-ai-microservice.md) is merged).**  
+**Status: implemented on `cursor/phase-3-productivity-monetization`.**  
 PRD Phase 3 (weeks 7–8).
 
 ## Goals
