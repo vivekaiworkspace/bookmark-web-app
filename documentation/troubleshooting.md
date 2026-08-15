@@ -22,7 +22,27 @@ Some sites block previews. You can still save; edit the title yourself. The card
 
 ## I cannot create another collection or tag
 
-You are on the free caps: **3 collections** and **10 tags**. Remove one you do not need.
+On **Free** you are capped at **3 collections** and **10 tags**. Upgrade to Pro in [Settings](billing.md), or remove one you do not need.
+
+## Semantic search is empty or blocked
+
+- Semantic search is **Pro**.
+- Links need scraped text and an embedding (AI worker + `OPENAI_API_KEY`).
+- The web app also needs `OPENAI_API_KEY` to embed your query.
+
+## Reminders will not save
+
+Reminders require Pro. The database rejects Free-plan inserts.
+
+## Email or push never arrives
+
+- Set `RESEND_API_KEY` / `RESEND_FROM` for email.
+- Set VAPID keys and click **Enable browser push** on Settings (Pro).
+- Hit `POST /api/cron/notify` with `X-Cron-Secret`, or run Docker so Celery beat calls it.
+
+## Billing buttons fail
+
+Stripe env vars are missing (`STRIPE_SECRET_KEY`, `STRIPE_PRO_PRICE_ID`, `STRIPE_WEBHOOK_SECRET`). Checkout and the portal stay off until those are set. Webhooks must reach `/api/stripe/webhook`.
 
 ## The extension always asks me to sign in
 

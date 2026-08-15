@@ -4,45 +4,54 @@ overview: "Phase 2 from the PRD: FastAPI AI service, Trafilatura/Readability/Pla
 todos:
   - id: schema
     content: Add ai_summaries, user_ai_settings, scrape/auto-tag status, suggested tags columns; RLS; keep embeddings for Phase 3
-    status: pending
+    status: completed
   - id: fastapi
     content: Scaffold FastAPI service with extract, auto-tag, and digest endpoints plus service-role DB writes
-    status: pending
+    status: completed
   - id: scrape
     content: Trafilatura + Readability scrape, Playwright fallback, tiktoken cap 4k–6k, persist content_raw
-    status: pending
+    status: completed
   - id: queue
     content: Redis + Celery workers; Next.js POSTs FastAPI to enqueue; extension via DB webhook; pg_cron digest trigger
-    status: pending
+    status: completed
   - id: llm
     content: LLM auto-tag against existing tags (suggest up to 3 new) and collection routing
-    status: pending
+    status: completed
   - id: digest
     content: Daily/weekly digest worker, custom prompt override, write ai_summaries
-    status: pending
+    status: completed
   - id: web-ui
     content: Enqueue jobs on save, show suggested tags, digest list/detail, prompt settings
-    status: pending
+    status: completed
   - id: docs
     content: Update documentation/ for AI tags, digests, prompt settings, and troubleshooting
-    status: pending
+    status: completed
 ---
 
 # Smart Bookmark Manager — Phase 2 AI microservice
 
-**Status: implemented in repo (run docker compose + env).**  
+**Status: implemented** — code on `cursor/phase-2-ai-microservice`, draft [PR #3](https://github.com/vivekaiworkspace/bookmark-web-app/pull/3). Schema `002_phase2.sql` applied on the live Supabase project.  
 **Depends on:** [Phase 1](phase-1-mvp.md) merged to `main` ([PR #1](https://github.com/vivekaiworkspace/bookmark-web-app/pull/1)).
 
-PRD Phase 2 (weeks 4–6): FastAPI on Fly.io / Railway / ECS; scrape pipeline; LLM auto-tag + scheduled digests via `pg_cron` and Celery/Redis.
+PRD Phase 2 (weeks 4–6): FastAPI scrape/auto-tag; Redis + Celery; digests. **Run now** and settings work from the Next.js app without Docker. FastAPI is required only for background scrape and auto-tag.
 
 **Still later:** [Phase 3](phase-3-productivity-monetization.md) — Stripe, Resend/Web Push, `pgvector` semantic search.
 
-## Current baseline (do not redo)
+## What shipped
+
+- [`supabase/migrations/002_phase2.sql`](../supabase/migrations/002_phase2.sql) — `ai_summaries`, `user_ai_settings`, scrape/auto-tag status, suggested tags/collection, RLS
+- [`services/ai/`](../services/ai/) — FastAPI + Celery (extract, auto-tag, digest jobs, SSRF, tiktoken cap)
+- [`docker-compose.yml`](../docker-compose.yml) — Redis + API + worker (optional locally)
+- Next.js: enqueue after save, Settings, Digests, **Run now** via [`src/lib/create-digest.ts`](../src/lib/create-digest.ts) (user session + optional `OPENAI_API_KEY`)
+- User guides in [`documentation/`](../documentation/)
+
+**Not done in this phase:** Railway/Fly deploy; enabling `pg_cron` against a public AI URL (Celery beat covers local scheduled ticks when Docker is up).
+
+## Phase 1 baseline (kept)
 
 - Next.js 16 app + extension + Supabase (`xpfkucssbdybylfcdqis`)
-- Lightweight [`src/app/api/extract-meta/route.ts`](../src/app/api/extract-meta/route.ts) (title/OG/favicon only)
-- `links.content_raw` exists but is unused
-- No `ai_summaries`, no queue, no Python service
+- Lightweight [`src/app/api/extract-meta/route.ts`](../src/app/api/extract-meta/route.ts) (title/OG/favicon only) — still the fast card path
+- `links.content_raw` is filled by the FastAPI worker when that stack is running
 
 ## Architecture
 
@@ -77,55 +86,54 @@ flowchart LR
 
 ## Schema ([`supabase/migrations/002_phase2.sql`](../supabase/migrations/002_phase2.sql))
 
-Add (from PRD, plus settings Phase 1 omitted):
+Applied on the live project:
 
-- `ai_summaries` — `user_id`, `collection_id`, `content`, `prompt_used`, `generated_at`; RLS
-- `user_ai_settings` — `user_id` PK, `prompt_override text`, `digest_frequency` (`off` | `weekly` | `daily`), `updated_at`
-- `links.content_raw` already present; add `links.scrape_status` (`pending` | `ready` | `failed`) and `links.auto_tag_status`
+- `ai_summaries` — `user_id`, nullable `collection_id`, `content`, `prompt_used`, `generated_at`; RLS; index `(user_id, generated_at desc)`
+- `user_ai_settings` — `user_id` PK, `prompt_override`, `digest_frequency` (`off` | `weekly` | `daily`), `digest_timezone` (default UTC)
+- `links.scrape_status` / `auto_tag_status` (`pending` | `ready` | `failed`), `scrape_error`, `suggested_tag_names`, `suggested_collection_id`
 - Skip `embedding` / `vector` until Phase 3
-- **Also needed for the planned UI (apply/dismiss tags):** `links.suggested_tag_names`, optional `links.suggested_collection_id`, optional `links.scrape_error`; default new rows to `pending`. Details below.
 
-Enable `pg_cron` (or a Supabase scheduled function) to POST digest jobs for users with frequency != `off`.
+`pg_cron` SQL is documented in the migration comments; enable in the dashboard when FastAPI is on a public URL.
 
 ## FastAPI (`services/ai/`)
 
-- `POST /api/v1/extract` — Trafilatura → Mozilla Readability → Playwright for SPAs; parse title/OG/favicon; tiktoken truncate 4,000–6,000; write `content_raw`
-- `POST /api/v1/auto-tag` — structured LLM output: existing tags to apply, up to 3 new tag names, optional collection id; honor free-tier tag cap (10) when inserting
-- Digest worker — links from the last period (`created_at`; Phase 1 has no unread flag), custom prompt if set, persist markdown on `ai_summaries`
+- `POST /api/v1/extract` — Trafilatura → Mozilla Readability → Playwright for SPAs; tiktoken truncate 4,000–6,000; write `content_raw`
+- `POST /api/v1/auto-tag` — structured LLM output: existing tags, up to 3 new names, optional collection; UI apply honors the 10-tag cap
+- `POST /api/v1/jobs` — enqueue `extract_and_tag`, `digest`, or run `digest_tick`
+- Celery beat: poll `scrape_status = pending` (extension saves); hourly digest tick (UTC)
 
 Keep Next.js `/api/extract-meta` for fast card save; Celery extract enriches `content_raw` in the background.
 
 ## Web app
 
-- After insert/upsert link, enqueue extract + auto-tag (do not block the save UI). Web save: Next.js → FastAPI → Celery. Extension save: same jobs via DB webhook/trigger or pending-row poll.
-- Card/detail: show scrape/tag status; apply or dismiss suggested tags
-- Settings: custom digest/system prompt; daily vs weekly vs off
-- Digests page: list `ai_summaries`, open markdown
-- AI auto-tag is Pro in the PRD; **ship for all users in Phase 2**, gate with Stripe in Phase 3
+- After insert/upsert link, `POST /api/ai/enqueue` (non-blocking). If FastAPI is down, the save still succeeds.
+- Card/detail: scrape/tag status; apply or dismiss suggested tags; confirm collection move
+- Settings: custom digest prompt; daily / weekly / off
+- Digests: list `ai_summaries`; **Run now** writes a row via the Next.js session (`OPENAI_API_KEY` if set, otherwise a markdown list of recent links)
+- AI auto-tag is Pro in the PRD; **shipped for all users in Phase 2**, gate with Stripe in Phase 3
 
 ## Env
 
-- Next.js: `AI_SERVICE_URL`, `AI_SERVICE_SECRET`
-- FastAPI: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `REDIS_URL`, `OPENAI_API_KEY` (or chosen LLM), `AI_SERVICE_SECRET`
+- Next.js: `AI_SERVICE_URL`, `AI_SERVICE_SECRET`, optional `OPENAI_API_KEY` / `OPENAI_MODEL` (Run now)
+- FastAPI: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `REDIS_URL`, `OPENAI_API_KEY`, `AI_SERVICE_SECRET`
 
 ## Out of scope
 
-Stripe, reminders, Resend, Web Push, `pgvector` Q&A, Chrome store packaging.
+Stripe, reminders, Resend, Web Push, `pgvector` Q&A, Chrome store packaging, production FastAPI host.
 
 ## Verification
 
-- Save a link → `content_raw` fills, tags suggested
+- **Run now** creates an `ai_summaries` row without Docker
+- With Docker + keys: save a link → `content_raw` fills, tags suggested
 - Custom prompt changes digest wording
-- Weekly/daily cron creates an `ai_summaries` row
 - RLS: user A cannot read user B summaries
-- Extension save also gets `content_raw` and suggested tags
-- Auto-tag does not exceed the 10-tag cap
+- Auto-tag apply does not exceed the 10-tag cap
 - Private/loopback scrape URLs are rejected
-- **Docs:** update [`documentation/`](../documentation/) (workspace, limits, troubleshooting) for auto-tag, digests, and prompt settings before calling Phase 2 done
+- Docs: [`documentation/`](../documentation/) covers auto-tag, digests, Run now, and troubleshooting
 
-## Implementation notes (do not change scope)
+## Implementation notes (shipped)
 
-These close gaps in the Phase 1 app so the plan above can ship. Stack, jobs, tables, and product remain the same.
+These close gaps in the Phase 1 app. Stack, jobs, tables, and product remain the same.
 
 ### Enqueue and workers
 
@@ -163,6 +171,7 @@ Enable `pg_cron` and `pg_net` in the Supabase dashboard. Schedule a job that sel
 
 ### Web UI
 
-- Do not block save. Poll the link row or use Supabase Realtime for status.
+- Do not block save. Poll the link row while status is pending.
 - Card/detail: pending / ready / failed; apply/dismiss suggested tags; optional “Move to {collection}?”
-- Settings and Digests routes under `src/app/`; extend [`src/lib/types.ts`](../src/lib/types.ts).
+- Settings (`/settings`) and Digests (`/digests`) with **Run now**.
+- Run now does not call FastAPI; it uses [`src/lib/create-digest.ts`](../src/lib/create-digest.ts).

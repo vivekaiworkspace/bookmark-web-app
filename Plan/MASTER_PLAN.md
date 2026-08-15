@@ -6,7 +6,7 @@ Single source of truth for phases, steps, and progress. Split phase notes remain
 | :--- | :--- |
 | **Product** | Smart Bookmark Manager |
 | **Repo** | [vivekaiworkspace/bookmark-web-app](https://github.com/vivekaiworkspace/bookmark-web-app) |
-| **Current work** | Phase 2 in repo (run AI docker stack) |
+| **Current work** | Phase 3 on `cursor/phase-3-productivity-monetization` (after Phase 2) |
 | **Updated** | 2026-08-15 |
 
 **Documentation rule:** When a phase’s implementation is finished, update every relevant file in [`documentation/`](../documentation/) (user guides, limits, troubleshooting) **before** marking that phase complete. New users should be able to use the new features from those guides alone.
@@ -18,8 +18,8 @@ Single source of truth for phases, steps, and progress. Split phase notes remain
 | Phase | PRD window | Status | Evidence |
 | :--- | :--- | :--- | :--- |
 | 1. Core web + extension | Weeks 1–3 | **Done** | [PR #1](https://github.com/vivekaiworkspace/bookmark-web-app/pull/1) merged to `main` (2026-08-15) |
-| 2. AI microservice + queues | Weeks 4–6 | **In repo** | Schema applied; `services/ai/` + web UI |
-| 3. Productivity, billing, polish | Weeks 7–8 | **Not started** (blocked on Phase 2) | — |
+| 2. AI microservice + queues | Weeks 4–6 | **In PR** | Draft [PR #3](https://github.com/vivekaiworkspace/bookmark-web-app/pull/3); schema applied |
+| 3. Productivity, billing, polish | Weeks 7–8 | **In progress** | Branch `cursor/phase-3-productivity-monetization` |
 
 ### Step checklist
 
@@ -38,19 +38,21 @@ Single source of truth for phases, steps, and progress. Split phase notes remain
 - [x] `002_phase2.sql`: `ai_summaries`, `user_ai_settings`, scrape/auto-tag status, suggested-tag columns, RLS
 - [x] FastAPI service (`services/ai/`): extract, auto-tag, digest + service-role writes
 - [x] Trafilatura + Readability scrape, Playwright fallback, tiktoken 4k–6k, persist `content_raw`
-- [x] Redis + Celery; enqueue on link save (Next.js → FastAPI → Redis; extension via DB webhook); `pg_cron` digest trigger
-- [x] LLM auto-tag (existing tags + up to 3 new) and collection routing
-- [x] Daily/weekly digest worker + custom prompt override
+- [x] Redis + Celery in repo; enqueue on save (Next.js → FastAPI when up); extension via pending poll
+- [ ] `pg_cron` against a public FastAPI URL (optional; Celery beat when Docker is running)
+- [x] LLM auto-tag (existing tags + up to 3 new) and collection **suggestion**
+- [x] Daily/weekly digest worker + custom prompt; **Run now** in the web app (no Docker)
 - [x] Web: job status, suggested tags, digest list, prompt settings
 - [x] Update [`documentation/`](../documentation/) for AI tags, digests, prompt settings, and new troubleshooting
+- [ ] Deploy FastAPI + Redis + worker (Railway or Fly.io)
 
 **Phase 3**
 
-- [ ] Stripe billing, customer portal, Free vs Pro gates
-- [ ] `reminders` table, datetime picker, Read Today queue
-- [ ] Resend email + Web Push (reminders and digests)
-- [ ] `pgvector` embeddings and semantic search / link Q&A
-- [ ] Update [`documentation/`](../documentation/) for reminders, Read Today, notifications, billing, and semantic search
+- [x] Stripe billing, customer portal, Free vs Pro gates
+- [x] `reminders` table, datetime picker, Read Today queue
+- [x] Resend email + Web Push (reminders and digests)
+- [x] `pgvector` embeddings and semantic search / link Q&A
+- [x] Update [`documentation/`](../documentation/) for reminders, Read Today, notifications, billing, and semantic search
 
 ---
 
@@ -194,9 +196,11 @@ extension/           MV3 popup + background
 
 ---
 
-## Phase 2 — AI microservice and queues (next)
+## Phase 2 — AI microservice and queues (implemented)
 
-PRD weeks 4–6. **Do not redo Phase 1.** Keep Next.js `/api/extract-meta` for fast card save; FastAPI enriches `content_raw` in the background.
+PRD weeks 4–6. **Do not redo Phase 1.** Keep Next.js `/api/extract-meta` for fast card save; FastAPI enriches `content_raw` when Docker is running. **Run now** writes digests from Next.js.
+
+Draft PR: [#3](https://github.com/vivekaiworkspace/bookmark-web-app/pull/3). Detail: [phase-2-ai-microservice.md](phase-2-ai-microservice.md).
 
 ### Steps
 
@@ -227,15 +231,14 @@ PRD weeks 4–6. **Do not redo Phase 1.** Keep Next.js `/api/extract-meta` for f
 
 ### Env (Phase 2)
 
-- Next.js: `AI_SERVICE_URL`, `AI_SERVICE_SECRET`
-- FastAPI: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `REDIS_URL`, `OPENAI_API_KEY` (or chosen LLM), `AI_SERVICE_SECRET`
+- Next.js: `AI_SERVICE_URL`, `AI_SERVICE_SECRET`, optional `OPENAI_API_KEY` (Run now)
+- FastAPI: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `REDIS_URL`, `OPENAI_API_KEY`, `AI_SERVICE_SECRET`
 
 ### Verification
 
-- Save a link → `content_raw` fills, tags suggested
-- Extension save also gets scrape + suggested tags
+- Run now → `ai_summaries` row without Docker
+- With worker: save a link → `content_raw` fills, tags suggested
 - Custom prompt changes digest wording
-- Cron creates `ai_summaries` for daily/weekly users
 - RLS: user A cannot read user B summaries
 - Auto-tag respects the 10-tag cap; SSRF targets rejected
 - Documentation updated for Phase 2 features
@@ -244,7 +247,7 @@ PRD weeks 4–6. **Do not redo Phase 1.** Keep Next.js `/api/extract-meta` for f
 
 ## Phase 3 — Productivity, monetization, polish
 
-PRD weeks 7–8. Starts after Phase 2.
+PRD weeks 7–8. Starts after Phase 2 is merged.
 
 ### Steps
 
@@ -288,7 +291,7 @@ Phase 1 already enforces 3 collections / 10 tags in the UI.
 | Area | Decision | Mitigation |
 | :--- | :--- | :--- |
 | Scraping | Trafilatura + Readability | Playwright only for SPAs |
-| Timeouts | Redis + Celery | No LLM work on the Next.js request |
+| Timeouts | Redis + Celery for scrape | Run now digest can run on the Next.js request |
 | LLM cost | tiktoken | Cap scraped text at 4k–6k tokens |
 | Notifications | Resend + Web Push | Phase 3; cron/webhooks dispatch |
 
@@ -299,8 +302,9 @@ Phase 1 already enforces 3 collections / 10 tags in the UI.
 | File | Role |
 | :--- | :--- |
 | [documentation/README.md](../documentation/README.md) | User guide index (update at the end of every phase) |
-| [README.md](../README.md) | How to run the Phase 1 app (operators) |
+| [README.md](../README.md) | How to run the app (operators) |
 | [phase-1-mvp.md](phase-1-mvp.md) | Phase 1 detail (archived snapshot) |
 | [phase-2-ai-microservice.md](phase-2-ai-microservice.md) | Phase 2 detail |
 | [phase-3-productivity-monetization.md](phase-3-productivity-monetization.md) | Phase 3 detail |
-| [`supabase/migrations/001_phase1.sql`](../supabase/migrations/001_phase1.sql) | Live schema |
+| [`supabase/migrations/001_phase1.sql`](../supabase/migrations/001_phase1.sql) | Phase 1 schema |
+| [`supabase/migrations/003_phase3.sql`](../supabase/migrations/003_phase3.sql) | Phase 3 schema (applied live) |

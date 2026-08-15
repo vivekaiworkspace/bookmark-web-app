@@ -24,6 +24,7 @@ You should see a sign-in screen. If the page does not load, the app is not runni
 1. Create an account or sign in ([Sign in](sign-in.md)).
 2. You land in your **workspace**. An **Inbox** collection is created for you automatically.
 3. Save a link from the workspace or from the [browser extension](browser-extension.md).
+4. Open **Digests** (top right) and click **Run now** for a summary of recent saves. Use **Settings** for plan, digest frequency, and (Pro) custom instructions.
 
 ## What you need
 

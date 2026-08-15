@@ -2,7 +2,7 @@
 
 **New here?** Read the [user guide](documentation/README.md) (getting started, sign-in, workspace, extension).
 
-Phase 1 MVP is **complete**. Phase 2 (AI scrape, auto-tag, digests) is **in the repo**.
+Phase 1 MVP is **complete**. Phase 2 is in draft [PR #3](https://github.com/vivekaiworkspace/bookmark-web-app/pull/3). Phase 3 is on branch `cursor/phase-3-productivity-monetization`.
 
 Full roadmap: [Plan/MASTER_PLAN.md](Plan/MASTER_PLAN.md).
 
@@ -12,18 +12,19 @@ Full roadmap: [Plan/MASTER_PLAN.md](Plan/MASTER_PLAN.md).
 - Organize links in **collections** (Inbox is created on first login) and **global tags**
 - Save links from the web app (metadata scrape) or from the **extension** (current tab)
 - Notes, favorites, keyword search, AND/OR tag filters, sort by newest / last opened / favorites
-- Background content extract, **suggested tags**, digest list, and custom digest prompt
-
-Free-tier gates (no billing yet): **3 collections**, **10 tags**. AI features are on for everyone until Phase 3.
+- Background content extract, **suggested tags** (Pro), digest list, custom digest prompt (Pro)
+- **Reminders**, **Read Today**, email/push when configured
+- Keyword search for everyone; **semantic search** and **Ask links** on Pro
+- **Stripe** Free vs Pro (3 collections / 10 tags on Free)
 
 ## Project layout
 
 ```
-src/app/             Web app (login, workspace, settings, digests, extract-meta, AI enqueue)
+src/app/             Web app (login, workspace, settings, digests, read-today, billing APIs)
 src/components/      UI and workspace features
 src/lib/supabase/    Supabase browser/server clients + session proxy
-supabase/migrations  Phase 1 + Phase 2 SQL
-services/ai          FastAPI + Celery workers
+supabase/migrations  Phase 1–3 SQL
+services/ai          FastAPI + Celery workers (scrape, tag, embed)
 extension/           Unpacked Chrome/Edge/Brave extension
 docker-compose.yml   Redis + API + worker
 ```
@@ -41,17 +42,21 @@ Open [http://localhost:3000](http://localhost:3000).
 
 Env files:
 
-- [`.env.example`](.env.example) — template (`AI_SERVICE_URL`, `AI_SERVICE_SECRET`)
+- [`.env.example`](.env.example) — template (AI, Stripe, Resend, VAPID, `CRON_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`)
 - `.env.local` — local keys (gitignored)
 - [`services/ai/.env.example`](services/ai/.env.example) — Python service
 - [`extension/config.js`](extension/config.js) — same URL and anon key for the extension
 
 Set `NEXT_PUBLIC_GOOGLE_AUTH=true` to show **Continue with Google**.
 
-### AI service (Phase 2)
+### AI (Phase 2)
+
+**Digests (no Docker):** add optional `OPENAI_API_KEY` to `.env.local`. Open **Digests** → **Run now**. Without that key you still get a markdown list of recent links.
+
+**Background scrape and auto-tag** need the Python stack:
 
 1. Copy `services/ai/.env.example` to `services/ai/.env`.
-2. Set `SUPABASE_SERVICE_ROLE_KEY` (Dashboard → Settings → API) and optional `OPENAI_API_KEY`.
+2. Set `SUPABASE_SERVICE_ROLE_KEY` (Dashboard → Settings → API) and `OPENAI_API_KEY`.
 3. Use the same `AI_SERVICE_SECRET` as `.env.local`.
 4. Start Redis, API, and worker:
 
@@ -59,9 +64,20 @@ Set `NEXT_PUBLIC_GOOGLE_AUTH=true` to show **Continue with Google**.
 docker compose up --build
 ```
 
-API: [http://localhost:8000/health](http://localhost:8000/health). Without this stack, bookmarks still save; scrape/tag/digest stay pending.
+API: [http://localhost:8000/health](http://localhost:8000/health). Without this stack, bookmarks still save; suggested tags stay empty until a worker runs.
 
-`pg_cron` to call `/api/v1/jobs` with `{"type":"digest_tick"}` is optional once the API is on a public URL. Locally, Celery beat polls pending links (including extension saves) and runs digest ticks hourly (UTC).
+`pg_cron` to call `/api/v1/jobs` with `{"type":"digest_tick"}` is optional once the API is on a public URL. Locally, Celery beat polls pending links (including extension saves), runs digest ticks hourly (UTC), and POSTs `/api/cron/notify` every five minutes when `CRON_SECRET` matches the Next.js app.
+
+### Phase 3 (billing, reminders, search)
+
+Copy new keys from `.env.example` into `.env.local`:
+
+- Stripe: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRO_PRICE_ID`. Forward webhooks with `stripe listen --forward-to localhost:3000/api/stripe/webhook`.
+- Email: `RESEND_API_KEY`, `RESEND_FROM`.
+- Push: `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (`npx web-push generate-vapid-keys`).
+- Notify cron: `CRON_SECRET` (same value in `services/ai/.env` as `CRON_SECRET`) and `SUPABASE_SERVICE_ROLE_KEY` for webhook/plan writes.
+
+Schema: [`supabase/migrations/001_phase1.sql`](supabase/migrations/001_phase1.sql), [`002_phase2.sql`](supabase/migrations/002_phase2.sql), and [`003_phase3.sql`](supabase/migrations/003_phase3.sql) (applied on the remote project).
 
 ### Auth dashboard (already used for this project)
 
@@ -71,8 +87,6 @@ API: [http://localhost:8000/health](http://localhost:8000/health). Without this 
 - [Email provider](https://supabase.com/dashboard/project/xpfkucssbdybylfcdqis/auth/providers) — turn **Confirm email** off for local testing, or confirm users before sign-in
 - [Google provider](https://supabase.com/dashboard/project/xpfkucssbdybylfcdqis/auth/providers) — Client ID + **Client secret** from Google Cloud  
   Google authorized redirect URI: `https://xpfkucssbdybylfcdqis.supabase.co/auth/v1/callback`
-
-Schema: [`supabase/migrations/001_phase1.sql`](supabase/migrations/001_phase1.sql) and [`supabase/migrations/002_phase2.sql`](supabase/migrations/002_phase2.sql) (applied on the remote project).
 
 ## Test the extension
 

@@ -1,32 +1,32 @@
 # Limits and what’s next
 
-## What you can do today (Phase 2)
+## What you can do today (Phase 3)
 
 - Sign in with email or Google (if enabled)
 - Collections, tags, link cards, notes, favorites
-- Search by text, filter by tags (AND/OR), sort
+- Keyword search, tag filters, sort
 - Save from the website or the browser extension
-- Background page scrape and **suggested tags**
-- **Digests** of recently saved links, with optional custom instructions
+- Background page scrape; **suggested tags** for Pro
+- Digests (**Run now**; scheduled if the worker is running)
+- **Reminders** and **Read Today** (Pro)
+- Email / browser notifications when configured (Pro for push)
+- **Semantic search** and **Ask links** (Pro)
+- **Stripe** Free / Pro
 
-## Current limits (no paid plans yet)
+## Current limits
 
-| | Limit |
-| :--- | :--- |
-| Collections | 3 |
-| Tags | 10 |
-| AI auto-tag and digests | Available to everyone until billing ships |
+| Feature | Free | Pro |
+| :--- | :--- | :--- |
+| Collections | 3 | Unlimited |
+| Tags | 10 | Unlimited |
+| AI auto-tag | No | Yes |
+| Notes / reminders | Notes | Notes + reminders + push |
+| AI digest | Weekly (1 batch / week) | Daily + custom prompts |
+| Search | Keyword | Semantic + Ask links |
 
-When you hit a collection or tag limit, the app shows a message. Applying suggested tags will not create new tags past 10; existing names can still be attached.
+When you hit a collection or tag limit, the app shows a message. Applying suggested tags will not create new tags past the Free cap.
 
-Digest cron uses **UTC**. Frequency: off, weekly (last 7 days of saves), or daily (last 24 hours). One digest per user per period, not per collection.
-
-## Coming later (Phase 3)
-
-- Reminders and a **Read Today** list
-- Email or browser notifications
-- Search by meaning (“that article about Postgres RLS”)
-- Stripe **Free / Pro** (unlimited collections/tags; some AI and search gated)
+Digest cron uses **UTC**. Frequency: off, weekly (last 7 days of saves), or daily (last 24 hours, Pro). One digest per user per period.
 
 ## Team roadmap
 

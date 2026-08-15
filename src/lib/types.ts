@@ -74,3 +74,15 @@ export type Bookmark = LinkRow & {
 
 export type SortMode = "created" | "accessed" | "favorites";
 export type TagLogic = "and" | "or";
+export type Plan = "free" | "pro";
+export type ReminderStatus = "pending" | "completed" | "dismissed";
+
+export type Reminder = {
+  id: string;
+  link_id: string;
+  user_id: string;
+  remind_at: string;
+  is_triggered: boolean;
+  status: ReminderStatus;
+  created_at: string;
+};

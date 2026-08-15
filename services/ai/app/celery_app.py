@@ -19,4 +19,8 @@ celery.conf.beat_schedule = {
         "task": "app.tasks.digest_tick_task",
         "schedule": crontab(minute=10),
     },
+    "notify-tick-every-five": {
+        "task": "app.tasks.notify_tick_task",
+        "schedule": 300.0,
+    },
 }

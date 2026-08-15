@@ -23,6 +23,7 @@ export function CollectionSidebar({
   onMove,
   colors,
   limit,
+  isPro = false,
 }: {
   collections: Collection[];
   activeId: string | "all";
@@ -33,6 +34,7 @@ export function CollectionSidebar({
   onMove: (id: string, direction: -1 | 1) => Promise<void>;
   colors: string[];
   limit: number;
+  isPro?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Collection | null>(null);
@@ -73,7 +75,9 @@ export function CollectionSidebar({
           disabled={collections.length >= limit}
           title={
             collections.length >= limit
-              ? `Free tier limit: ${limit} collections`
+              ? isPro
+                ? "New collection"
+                : `Free tier limit: ${limit} collections`
               : "New collection"
           }
         >
@@ -144,7 +148,9 @@ export function CollectionSidebar({
         ))}
       </nav>
       <p className="px-4 py-3 text-xs text-muted-foreground">
-        {collections.length}/{limit} collections (free)
+        {isPro
+          ? `${collections.length} collections (Pro)`
+          : `${collections.length}/${limit} collections (free)`}
       </p>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>

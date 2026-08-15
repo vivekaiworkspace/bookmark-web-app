@@ -74,6 +74,20 @@ def suggest_tags(
     }
 
 
+def embed_text(text: str) -> list[float] | None:
+    client = _client()
+    if not client:
+        return None
+    clipped = text.strip()[:8000]
+    if not clipped:
+        return None
+    response = client.embeddings.create(
+        model="text-embedding-3-small",
+        input=clipped,
+    )
+    return response.data[0].embedding
+
+
 def write_digest(links: list[dict], prompt_override: str | None) -> str:
     client = _client()
     if not client:

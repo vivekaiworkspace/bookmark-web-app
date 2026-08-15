@@ -15,6 +15,11 @@ export function FilterBar({
   onQuery,
   sort,
   onSort,
+  semantic,
+  onSemantic,
+  canSemantic,
+  onAsk,
+  asking,
 }: {
   tags: Tag[];
   selectedTagIds: string[];
@@ -25,6 +30,11 @@ export function FilterBar({
   onQuery: (q: string) => void;
   sort: SortMode;
   onSort: (s: SortMode) => void;
+  semantic: boolean;
+  onSemantic: (on: boolean) => void;
+  canSemantic: boolean;
+  onAsk: () => void;
+  asking: boolean;
 }) {
   return (
     <div className="space-y-3 border-b px-6 py-4">
@@ -32,7 +42,11 @@ export function FilterBar({
         <Input
           value={query}
           onChange={(e) => onQuery(e.target.value)}
-          placeholder="Search title, URL, notes…"
+          placeholder={
+            semantic
+              ? "Search by meaning…"
+              : "Search title, URL, notes…"
+          }
           className="max-w-sm"
         />
         <div className="flex rounded-md border p-0.5">
@@ -61,6 +75,26 @@ export function FilterBar({
           onClick={() => onTagLogic(tagLogic === "and" ? "or" : "and")}
         >
           Tags: {tagLogic.toUpperCase()}
+        </Button>
+        <Button
+          size="sm"
+          variant={semantic ? "default" : "outline"}
+          disabled={!canSemantic}
+          onClick={() => {
+            if (!canSemantic) return;
+            onSemantic(!semantic);
+          }}
+          title={canSemantic ? "Semantic search (Pro)" : "Semantic search is Pro"}
+        >
+          Semantic
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={!canSemantic || asking}
+          onClick={onAsk}
+        >
+          {asking ? "Asking…" : "Ask links"}
         </Button>
       </div>
       {tags.length > 0 && (
