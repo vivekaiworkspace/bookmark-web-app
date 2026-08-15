@@ -1,8 +1,10 @@
 # Smart Bookmark Manager
 
+**New here?** Read the [user guide](documentation/README.md) (getting started, sign-in, workspace, extension).
+
 Phase 1 MVP is **complete**: a Next.js bookmark workspace and a Manifest V3 browser extension, backed by Supabase.
 
-Later PRD phases (AI auto-tag, digests, Stripe, semantic search, reminders) are not in this repo yet.
+Full roadmap: [Plan/MASTER_PLAN.md](Plan/MASTER_PLAN.md). Phase 2 (AI service) is next.
 
 ## What you can do
 

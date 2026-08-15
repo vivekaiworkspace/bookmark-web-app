@@ -1,0 +1,47 @@
+# Troubleshooting
+
+## The website is blank or “can’t connect”
+
+- Confirm `npm run dev` is running in the project folder.
+- Open exactly [http://localhost:3000](http://localhost:3000).
+- Wait until the terminal says the app is ready.
+
+## I created an account but cannot sign in
+
+- Use **Sign in** (not Sign up) with the same email and password.
+- If you see **email not confirmed**, open the confirmation email, or ask the person who runs the app to disable Confirm email / confirm your user in Supabase.
+- Password must be at least 6 characters.
+
+## Google sign-in shows JSON (`provider is not enabled` / `missing OAuth secret`)
+
+Google is not fully set up. Use **email and password** until Client ID, Client secret, and redirect URLs are configured. See the project [README](../README.md) for operator steps.
+
+## Fetch on Save link does nothing useful
+
+Some sites block previews. You can still save; edit the title yourself. The card may show the site name instead of an image.
+
+## I cannot create another collection or tag
+
+You are on the free caps: **3 collections** and **10 tags**. Remove one you do not need.
+
+## The extension always asks me to sign in
+
+Complete the connect step in [Browser extension](browser-extension.md) (automatic connect or paste session JSON). The web app must be running at the URL in `extension/config.js` (usually `http://localhost:3000`).
+
+## Save current tab fails
+
+- You must be signed in to the extension.
+- Use a normal `http` or `https` page, not `chrome://`.
+- Reload the extension after `extension` files change.
+
+## I signed in on the website but the extension is a different user
+
+The extension has its own stored session. Sign in again from the popup, or paste a fresh session from `/extension-auth`.
+
+## I deleted a collection and my links vanished from that list
+
+They should still be under **All links**. Open All links and assign a collection in **Notes & tags**.
+
+## Still stuck
+
+Note what you clicked, the exact message, and whether you used the website or the extension. That helps whoever maintains the app.
