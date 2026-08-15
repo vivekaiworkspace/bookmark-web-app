@@ -72,4 +72,20 @@ Click a tag chip again to stop filtering by it.
 
 ## What is not in this screen yet
 
-AI auto-tagging, weekly/daily digest emails, reminders, and “search by meaning” are planned. See [Limits and what’s next](limits-and-whats-next.md).
+Reminders, email/push notifications, and search by meaning are Phase 3. See [Limits and what’s next](limits-and-whats-next.md).
+
+## AI on a saved link
+
+After you save, the app reads the page in the background (the save itself stays instant).
+
+- **AI: reading page…** on a card means scrape or tagging is still running.
+- Open **Notes & tags** to **Apply** or **Dismiss** suggested tags.
+- If a collection is suggested, confirm **Move** — the link is not moved automatically.
+- Scrape can fail on pages that block bots or private/internal URLs.
+
+## Digests and prompt settings
+
+- **Digests** (top right) lists summaries of links saved in the last day or week. **Run now** creates one immediately.
+- **Settings** (top right) sets digest frequency (off / weekly / daily, UTC) and optional instructions for how summaries are written.
+
+The AI worker must be running for scrape, tags, and digests. If it is not, links still save; suggestions stay empty.

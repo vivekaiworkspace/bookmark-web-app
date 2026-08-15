@@ -37,6 +37,8 @@ The popup cannot show Google/email by itself. It uses the website, then copies y
 
 You only do this until you sign out of the extension or the login expires.
 
+Saves from the extension still get background scrape and suggested tags (the worker polls new rows). You apply or dismiss tags in the website.
+
 ## Save the current tab
 
 1. Open a normal website. Do **not** use `chrome://` or `edge://` pages — those often cannot be saved.

@@ -32,6 +32,9 @@ export function LinkDetailDialog({
   onDelete,
   onFavorite,
   onOpen,
+  onApplySuggestions,
+  onDismissSuggestions,
+  onAcceptCollection,
 }: {
   link: Bookmark | null;
   collections: Collection[];
@@ -45,6 +48,9 @@ export function LinkDetailDialog({
   onDelete: (linkId: string) => Promise<void>;
   onFavorite: (link: Bookmark) => void;
   onOpen: (link: Bookmark) => void;
+  onApplySuggestions: (link: Bookmark) => Promise<void>;
+  onDismissSuggestions: (link: Bookmark) => Promise<void>;
+  onAcceptCollection: (link: Bookmark) => Promise<void>;
 }) {
   const [note, setNote] = useState("");
   const [preview, setPreview] = useState(false);
@@ -84,6 +90,44 @@ export function LinkDetailDialog({
           <DialogTitle className="pr-6">{link.title}</DialogTitle>
         </DialogHeader>
         <p className="text-sm text-muted-foreground">{link.url}</p>
+        <p className="text-xs text-muted-foreground">
+          Scrape: {link.scrape_status ?? "pending"} · Tags:{" "}
+          {link.auto_tag_status ?? "pending"}
+          {link.scrape_error ? ` · ${link.scrape_error}` : ""}
+        </p>
+        {(link.suggested_tag_names?.length ?? 0) > 0 && (
+          <div className="space-y-2 rounded-md border p-3">
+            <p className="text-sm font-medium">Suggested tags</p>
+            <p className="text-sm text-muted-foreground">
+              {link.suggested_tag_names?.join(", ")}
+            </p>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={() => void onApplySuggestions(link)}>
+                Apply
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => void onDismissSuggestions(link)}
+              >
+                Dismiss
+              </Button>
+            </div>
+          </div>
+        )}
+        {link.suggested_collection_id && (
+          <div className="space-y-2 rounded-md border p-3">
+            <p className="text-sm font-medium">
+              Move to{" "}
+              {collections.find((c) => c.id === link.suggested_collection_id)
+                ?.name ?? "suggested collection"}
+              ?
+            </p>
+            <Button size="sm" onClick={() => void onAcceptCollection(link)}>
+              Move
+            </Button>
+          </div>
+        )}
         <div className="flex flex-wrap gap-2">
           <Button size="sm" onClick={() => onOpen(link)}>
             Open

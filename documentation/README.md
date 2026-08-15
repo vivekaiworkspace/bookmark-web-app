@@ -13,4 +13,4 @@ Start here:
 
 Roadmap for the team: [Plan/MASTER_PLAN.md](../Plan/MASTER_PLAN.md)
 
-**Today’s version (Phase 1):** you can sign in, organize bookmarks, and save tabs from the extension. AI summaries, reminders, and paid plans are not available yet.
+**Today’s version (Phase 2):** you can sign in, organize bookmarks, save tabs from the extension, get suggested tags, and read scheduled digests. Reminders and paid plans are not available yet.
