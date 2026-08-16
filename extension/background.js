@@ -1,4 +1,5 @@
 import { APP_URL, SUPABASE_ANON_KEY, SUPABASE_URL } from "./config.js";
+import { buildSavePayload } from "./url.js";
 
 chrome.runtime.onMessageExternal.addListener((message, _sender, sendResponse) => {
   if (message?.type === "SET_SESSION" && message.session) {
@@ -93,24 +94,8 @@ async function listCollections() {
   return { ok: true, collections, lastCollectionId: stored.lastCollectionId ?? null };
 }
 
-function hostnameFromUrl(url) {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return url;
-  }
-}
-
 async function saveTab({ url, title, collectionId }) {
-  const domain = hostnameFromUrl(url);
-  const payload = {
-    url,
-    title: title || domain,
-    domain,
-    favicon_url: `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64`,
-    collection_id: collectionId || null,
-    updated_at: new Date().toISOString(),
-  };
+  const payload = buildSavePayload({ url, title, collectionId });
   const token = await getValidAccessToken();
   const userRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
     headers: {

@@ -2,7 +2,7 @@
 
 ## The website is blank or “can’t connect”
 
-- Confirm `npm run dev` is running in the project folder.
+- Confirm `npm run dev` is running in the `web/` folder.
 - Open exactly [http://localhost:3000](http://localhost:3000).
 - Wait until the terminal says the app is ready.
 
@@ -64,8 +64,8 @@ They should still be under **All links**. Open All links and assign a collection
 
 ## Suggested tags never appear
 
-- Confirm the AI service is running (`docker compose up` in the project folder, after `services/ai/.env` has a service role key and optional `OPENAI_API_KEY`).
-- Confirm `.env.local` has `AI_SERVICE_URL=http://localhost:8000` and the same `AI_SERVICE_SECRET` as the Python service.
+- Confirm the AI service is running (`docker compose up` in the project folder, after `backend/.env` has a service role key and optional `OPENAI_API_KEY`).
+- Confirm `web/.env.local` has `AI_SERVICE_URL=http://localhost:8000` and the same `AI_SERVICE_SECRET` as the Python service.
 - Wait a few seconds and refresh. Cards show **AI: reading page…** while work is queued.
 - Some sites block scraping. Failed scrapes show an error on the card; tags need page text.
 - Without `OPENAI_API_KEY`, scrape can still fill content, but auto-tag stays failed.

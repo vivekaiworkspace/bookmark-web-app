@@ -18,6 +18,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+import { swatchBgClass } from "@/lib/colors";
 
 export function LinkDetailDialog({
   link,
@@ -191,16 +193,10 @@ export function LinkDetailDialog({
                 <button
                   key={tag.id}
                   type="button"
-                  className="rounded-full border px-2 py-0.5 text-xs"
-                  style={
-                    on
-                      ? {
-                          backgroundColor: tag.color,
-                          color: "white",
-                          borderColor: "transparent",
-                        }
-                      : undefined
-                  }
+                  className={cn(
+                    "rounded-full border px-2 py-0.5 text-xs",
+                    on && `border-transparent text-white ${swatchBgClass(tag.color)}`,
+                  )}
                   onClick={() => {
                     const next = on
                       ? tagIds.filter((id) => id !== tag.id)

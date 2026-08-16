@@ -1,22 +1,26 @@
 "use client";
 
+import { memo } from "react";
 import type { Bookmark } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Star } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { swatchRingClass } from "@/lib/colors";
 
-export function LinkCard({
-  link,
-  onOpen,
-  onFavorite,
-  onDetails,
-}: {
+export type LinkCardProps = {
   link: Bookmark;
   onOpen: () => void;
   onFavorite: () => void;
   onDetails: () => void;
-}) {
+};
+
+export const LinkCard = memo(function LinkCard({
+  link,
+  onOpen,
+  onFavorite,
+  onDetails,
+}: LinkCardProps) {
   return (
     <article className="flex flex-col overflow-hidden rounded-xl border bg-card shadow-sm">
       <button className="relative block h-32 w-full bg-muted" onClick={onOpen}>
@@ -35,12 +39,16 @@ export function LinkCard({
       </button>
       <div className="flex flex-1 flex-col gap-2 p-4">
         <div className="flex items-start gap-2">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={link.favicon_url ?? ""}
-            alt=""
-            className="mt-0.5 h-4 w-4 rounded-sm"
-          />
+          {link.favicon_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={link.favicon_url}
+              alt=""
+              className="mt-0.5 h-4 w-4 rounded-sm"
+            />
+          ) : (
+            <span className="mt-0.5 h-4 w-4 shrink-0 rounded-sm bg-muted" />
+          )}
           <div className="min-w-0 flex-1">
             <button
               className="line-clamp-2 text-left text-sm font-semibold hover:underline"
@@ -54,6 +62,7 @@ export function LinkCard({
             size="icon"
             variant="ghost"
             onClick={onFavorite}
+            aria-label={link.is_favorite ? "Unfavorite" : "Favorite"}
             className={cn(link.is_favorite && "text-amber-500")}
           >
             <Star className={cn(link.is_favorite && "fill-current")} />
@@ -62,10 +71,7 @@ export function LinkCard({
         {link.tags.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {link.tags.map((tag) => (
-              <Badge
-                key={tag.id}
-                style={{ borderColor: tag.color, color: tag.color }}
-              >
+              <Badge key={tag.id} className={swatchRingClass(tag.color)}>
                 {tag.name}
               </Badge>
             ))}
@@ -95,4 +101,4 @@ export function LinkCard({
       </div>
     </article>
   );
-}
+});

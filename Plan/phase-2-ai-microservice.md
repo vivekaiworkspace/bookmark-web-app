@@ -40,9 +40,9 @@ PRD Phase 2 (weeks 4–6): FastAPI scrape/auto-tag; Redis + Celery; digests. **R
 ## What shipped
 
 - [`supabase/migrations/002_phase2.sql`](../supabase/migrations/002_phase2.sql) — `ai_summaries`, `user_ai_settings`, scrape/auto-tag status, suggested tags/collection, RLS
-- [`services/ai/`](../services/ai/) — FastAPI + Celery (extract, auto-tag, digest jobs, SSRF, tiktoken cap)
+- [`backend/`](../backend/) — FastAPI + Celery (extract, auto-tag, digest jobs, SSRF, tiktoken cap)
 - [`docker-compose.yml`](../docker-compose.yml) — Redis + API + worker (optional locally)
-- Next.js: enqueue after save, Settings, Digests, **Run now** via [`src/lib/create-digest.ts`](../src/lib/create-digest.ts) (user session + optional `OPENAI_API_KEY`)
+- Next.js: enqueue after save, Settings, Digests, **Run now** via [`web/src/lib/create-digest.ts`](../web/src/lib/create-digest.ts) (user session + optional `OPENAI_API_KEY`)
 - User guides in [`documentation/`](../documentation/)
 
 **Not done in this phase:** Railway/Fly deploy; enabling `pg_cron` against a public AI URL (Celery beat covers local scheduled ticks when Docker is up).
@@ -50,7 +50,7 @@ PRD Phase 2 (weeks 4–6): FastAPI scrape/auto-tag; Redis + Celery; digests. **R
 ## Phase 1 baseline (kept)
 
 - Next.js 16 app + extension + Supabase (`xpfkucssbdybylfcdqis`)
-- Lightweight [`src/app/api/extract-meta/route.ts`](../src/app/api/extract-meta/route.ts) (title/OG/favicon only) — still the fast card path
+- Lightweight [`web/src/app/api/extract-meta/route.ts`](../web/src/app/api/extract-meta/route.ts) (title/OG/favicon only) — still the fast card path
 - `links.content_raw` is filled by the FastAPI worker when that stack is running
 
 ## Architecture
@@ -82,7 +82,7 @@ flowchart LR
 - **Queue:** Redis + Celery (PRD). Jobs: `extract_content`, `auto_tag`, `digest`.
 - **Auth to FastAPI:** shared service secret for Next.js/pg_cron; FastAPI uses Supabase **service role** only for job writes, always scoped by `user_id` from the job payload.
 - **Deploy:** FastAPI + Redis + worker as containers (Railway or Fly.io). Next.js stays as-is.
-- **How enqueue actually works (same stack, not a new design):** Next.js does not open Redis. After a save, a Next.js API route (cookie session) POSTs FastAPI with `AI_SERVICE_SECRET`. FastAPI enqueues Celery. Workers run scrape/LLM in the same `services/ai/` package (no HTTP hop back to FastAPI). Extension saves only hit Postgres today — cover them with a DB webhook/trigger (or poll `pending` rows), not by teaching the extension Redis/FastAPI URLs. See [Implementation notes](#implementation-notes-do-not-change-scope).
+- **How enqueue actually works (same stack, not a new design):** Next.js does not open Redis. After a save, a Next.js API route (cookie session) POSTs FastAPI with `AI_SERVICE_SECRET`. FastAPI enqueues Celery. Workers run scrape/LLM in the same `backend/` package (no HTTP hop back to FastAPI). Extension saves only hit Postgres today — cover them with a DB webhook/trigger (or poll `pending` rows), not by teaching the extension Redis/FastAPI URLs. See [Implementation notes](#implementation-notes-do-not-change-scope).
 
 ## Schema ([`supabase/migrations/002_phase2.sql`](../supabase/migrations/002_phase2.sql))
 
@@ -95,7 +95,7 @@ Applied on the live project:
 
 `pg_cron` SQL is documented in the migration comments; enable in the dashboard when FastAPI is on a public URL.
 
-## FastAPI (`services/ai/`)
+## FastAPI (`backend/`)
 
 - `POST /api/v1/extract` — Trafilatura → Mozilla Readability → Playwright for SPAs; tiktoken truncate 4,000–6,000; write `content_raw`
 - `POST /api/v1/auto-tag` — structured LLM output: existing tags, up to 3 new names, optional collection; UI apply honors the 10-tag cap
@@ -139,7 +139,7 @@ These close gaps in the Phase 1 app. Stack, jobs, tables, and product remain the
 
 - Browser never holds `AI_SERVICE_SECRET`. Next.js server route authenticates the user, then POSTs FastAPI.
 - FastAPI `POST /api/v1/jobs` (or extract + auto-tag) validates the secret and enqueues Redis/Celery.
-- Celery workers import scrape/LLM from `services/ai/` directly. The architecture diagram’s `Celery --> API` line means “workers use the FastAPI service codebase,” not a second HTTP call.
+- Celery workers import scrape/LLM from `backend/` directly. The architecture diagram’s `Celery --> API` line means “workers use the FastAPI service codebase,” not a second HTTP call.
 - On upsert of the same `(user_id, url)`: re-run extract/auto-tag only if status is `failed` or `content_raw` is empty; skip if already `ready`.
 
 ### Extension
@@ -174,4 +174,4 @@ Enable `pg_cron` and `pg_net` in the Supabase dashboard. Schedule a job that sel
 - Do not block save. Poll the link row while status is pending.
 - Card/detail: pending / ready / failed; apply/dismiss suggested tags; optional “Move to {collection}?”
 - Settings (`/settings`) and Digests (`/digests`) with **Run now**.
-- Run now does not call FastAPI; it uses [`src/lib/create-digest.ts`](../src/lib/create-digest.ts).
+- Run now does not call FastAPI; it uses [`web/src/lib/create-digest.ts`](../web/src/lib/create-digest.ts).

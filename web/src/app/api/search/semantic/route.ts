@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requirePro } from "@/lib/plan-server";
 import { embedText } from "@/lib/embeddings";
+import { semanticSearchBodySchema } from "@/lib/schemas";
 
 export async function POST(request: Request) {
   const gated = await requirePro();
@@ -9,11 +10,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: gated.error }, { status: gated.status });
   }
 
-  const body = (await request.json()) as { query?: string };
-  const query = body.query?.trim() ?? "";
-  if (query.length < 2) {
+  const parsed = semanticSearchBodySchema.safeParse(
+    await request.json().catch(() => null),
+  );
+  if (!parsed.success) {
     return NextResponse.json({ error: "Query too short" }, { status: 400 });
   }
+  const query = parsed.data.query.trim();
 
   const embedding = await embedText(query);
   if (!embedding) {

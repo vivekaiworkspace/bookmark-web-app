@@ -1,0 +1,17 @@
+---
+description: Chrome Extension development guidelines adhering strictly to Manifest V3 specifications.
+globs: extension/**/*.{ts,tsx,js,json,html}
+alwaysApply: false
+---
+
+# Chrome Extension (Manifest V3) Standards
+
+## Manifest V3 Architecture
+- Use background Service Workers (`background.js` / `background.ts`) instead of persistent background scripts.
+- Declare minimal permissions in `manifest.json` (e.g., `"activeTab"`, `"storage"`, `"scripting"`).
+- Maintain strict Content Security Policy (CSP): do not use `eval()` or load external scripts remotely.
+
+## Chrome APIs & Authentication
+- Manage message communication between popup and service workers using `chrome.runtime.sendMessage` and `chrome.runtime.onMessage.addListener`.
+- Capture the active browser tab URL and title using `chrome.tabs.query({ active: true, currentWindow: true })`.
+- Synchronize and persist Supabase authentication session tokens locally using `chrome.storage.local`.

@@ -2,7 +2,7 @@
 
 The extension saves **the page you are looking at** into your Smart Bookmark Manager account, without copying the URL by hand.
 
-It works in **Chrome**, **Edge**, and **Brave**. The website must be running (for local use: [http://localhost:3000](http://localhost:3000) with `npm run dev`).
+It works in **Chrome**, **Edge**, and **Brave**. The website must be running (for local use: [http://localhost:3000](http://localhost:3000) with `npm run dev` from `web/`).
 
 ## Install (unpacked)
 

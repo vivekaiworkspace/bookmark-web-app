@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { dispatchNotifications } from "@/lib/notify";
+import { cronSecretHeaderSchema } from "@/lib/schemas";
 
 export async function POST(request: Request) {
   const secret = process.env.CRON_SECRET;
-  const header = request.headers.get("x-cron-secret");
-  if (!secret || header !== secret) {
+  const header = cronSecretHeaderSchema.safeParse(
+    request.headers.get("x-cron-secret"),
+  );
+  if (!secret || !header.success || header.data !== secret) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   try {

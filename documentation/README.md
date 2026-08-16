@@ -14,6 +14,8 @@ Start here:
 8. [Limits and what’s next](limits-and-whats-next.md) — caps and roadmap
 9. [Troubleshooting](troubleshooting.md) — common problems
 
+Builders: [ARCHITECTURE.md](ARCHITECTURE.md) and [IMPLEMENTATION_LOG.md](IMPLEMENTATION_LOG.md).
+
 Roadmap for the team: [Plan/MASTER_PLAN.md](../Plan/MASTER_PLAN.md)
 
 **Today’s version (Phase 3):** sign in, organize bookmarks, save from the extension, **Settings** (plan, digest, push), **Digests**, **Read Today**, and Pro semantic search when billing and embeddings are set up.

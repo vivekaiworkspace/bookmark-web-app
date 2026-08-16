@@ -36,14 +36,14 @@ Implemented **Phase 1 only** from the PRD: core web app + unpacked Manifest V3 e
 
 ## What shipped
 
-- Next.js App Router (v16) + TypeScript + Tailwind + shadcn-style UI (`src/app`, `src/components`)
+- Next.js App Router (v16) + TypeScript + Tailwind + shadcn-style UI (`web/src/app`, `web/src/components`)
 - Supabase project **Smart Bookmark Manager** (`xpfkucssbdybylfcdqis`): schema, RLS, `ensure_inbox`
 - Email/password + Google OAuth
 - Collections, global tags, link cards, notes, keyword search, AND/OR tag filters, sort
 - `POST /api/extract-meta` for title / OG image / favicon (lightweight; not the FastAPI scraper)
 - Manifest V3 extension in `extension/`
 
-Auth session refresh uses Next.js 16 `src/proxy.ts`.
+Auth session refresh uses Next.js 16 `web/src/proxy.ts`.
 
 ## Stack (as built)
 

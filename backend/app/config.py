@@ -1,3 +1,4 @@
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -12,9 +13,14 @@ class Settings(BaseSettings):
     openai_model: str = "gpt-4o-mini"
     playwright_enabled: bool = False
     free_tag_limit: int = 10
-    token_cap: int = 5000
+    token_cap: int = Field(default=5000)
     app_url: str = "http://localhost:3000"
     cron_secret: str = ""
+
+    @field_validator("token_cap")
+    @classmethod
+    def clamp_token_cap(cls, value: int) -> int:
+        return min(6000, max(4000, value))
 
 
 settings = Settings()

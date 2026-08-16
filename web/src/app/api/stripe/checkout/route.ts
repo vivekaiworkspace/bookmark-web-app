@@ -2,8 +2,15 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { appUrl, getStripe, stripeConfigured } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { emptyJsonBodySchema } from "@/lib/schemas";
 
-export async function POST() {
+export async function POST(request: Request) {
+  const parsed = emptyJsonBodySchema.safeParse(
+    await request.json().catch(() => ({})),
+  );
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  }
   if (!stripeConfigured()) {
     return NextResponse.json(
       { error: "Stripe is not configured" },

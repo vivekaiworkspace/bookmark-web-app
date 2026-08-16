@@ -8,8 +8,8 @@ If someone already runs the app for you, use the URL they gave you.
 
 If you run it on your own computer:
 
-1. Make sure the project is installed (`npm install` once).
-2. In a terminal, from the project folder, run:
+1. Make sure the web app is installed (`cd web` then `npm install` once).
+2. In a terminal, from the `web/` folder, run:
 
 ```bash
 npm run dev

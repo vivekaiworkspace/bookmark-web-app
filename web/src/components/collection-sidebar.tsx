@@ -12,6 +12,20 @@ import {
 } from "@/components/ui/dialog";
 import { ChevronDown, ChevronUp, FolderPlus, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { swatchBgClass } from "@/lib/colors";
+
+export type CollectionSidebarProps = {
+  collections: Collection[];
+  activeId: string | "all";
+  onSelect: (id: string | "all") => void;
+  onAdd: (name: string, color: string) => Promise<void>;
+  onRename: (id: string, name: string, color: string) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+  onMove: (id: string, direction: -1 | 1) => Promise<void>;
+  colors: string[];
+  limit: number;
+  isPro?: boolean;
+};
 
 export function CollectionSidebar({
   collections,
@@ -24,18 +38,7 @@ export function CollectionSidebar({
   colors,
   limit,
   isPro = false,
-}: {
-  collections: Collection[];
-  activeId: string | "all";
-  onSelect: (id: string | "all") => void;
-  onAdd: (name: string, color: string) => Promise<void>;
-  onRename: (id: string, name: string, color: string) => Promise<void>;
-  onDelete: (id: string) => Promise<void>;
-  onMove: (id: string, direction: -1 | 1) => Promise<void>;
-  colors: string[];
-  limit: number;
-  isPro?: boolean;
-}) {
+}: CollectionSidebarProps) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Collection | null>(null);
   const [name, setName] = useState("");
@@ -107,8 +110,10 @@ export function CollectionSidebar({
               onClick={() => onSelect(col.id)}
             >
               <span
-                className="h-2.5 w-2.5 shrink-0 rounded-full"
-                style={{ backgroundColor: col.color }}
+                className={cn(
+                  "h-2.5 w-2.5 shrink-0 rounded-full",
+                  swatchBgClass(col.color),
+                )}
               />
               <span className="truncate">{col.name}</span>
             </button>
@@ -172,9 +177,10 @@ export function CollectionSidebar({
                   type="button"
                   className={cn(
                     "h-6 w-6 rounded-full ring-offset-background",
+                    swatchBgClass(c),
                     color === c && "ring-2 ring-ring",
                   )}
-                  style={{ backgroundColor: c }}
+                  aria-label={`Color ${c}`}
                   onClick={() => setColor(c)}
                 />
               ))}
