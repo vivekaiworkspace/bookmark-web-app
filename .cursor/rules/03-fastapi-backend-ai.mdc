@@ -1,0 +1,20 @@
+---
+description: FastAPI microservice standards, Pydantic v2 schemas, Celery task workers, and scraping pipelines.
+globs: backend/**/*.py
+alwaysApply: false
+---
+
+# FastAPI & AI Microservice Standards
+
+## Async Architecture & Validation
+- Use asynchronous route handlers (`async def`) for all network I/O, database access, and external API requests.
+- Manage startup and shutdown lifecycles using `asynccontextmanager` lifespans.
+- Enforce data contracts using Pydantic v2 `BaseModel` with explicit field type annotations.
+- Handle application errors with explicit `HTTPException(status_code=..., detail=...)`.
+
+## Background Workers & Scraping Pipeline
+- Offload long-running web scraping and LLM generation to Celery/Redis tasks to prevent HTTP timeouts.
+- **Scraping Hierarchy:**
+  1. Primary: Extract clean article text and OpenGraph metadata using `Trafilatura`.
+  2. Fallback: Dispatch dynamic Single-Page Applications (SPAs) to headless `Playwright` workers.
+- **Token Budgeting:** Truncate raw scraped text using `tiktoken` to a strict 4,000–6,000 token limit before calling LLM APIs.

@@ -1,0 +1,21 @@
+---
+description: Next.js App Router, React 19, Tailwind CSS, and Shadcn UI standards.
+globs: web/**/*.{ts,tsx,jsx,js,css,json}
+alwaysApply: false
+---
+
+# Next.js & Frontend Standards
+
+## Architecture & Rendering
+- **Server Components First:** Default to React Server Components (RSC). Use `"use client"` only for user interactions, local state (`useState`, `useReducer`), or browser API hooks.
+- **Data Fetching:** Fetch database records server-side via Supabase server client or Server Actions. Avoid client-side `useEffect` data fetching loops.
+- **Streaming & Fallbacks:** Wrap asynchronous UI components and dynamic lists in `<Suspense fallback={<Skeleton />}>`.
+
+## UI & Styling
+- **Shadcn UI:** Prioritize Shadcn UI primitives for all buttons, dialogs, dropdowns, tooltips, and form inputs.
+- **Tailwind Utility Classes:** Use standard Tailwind utility classes only. Do not write custom CSS classes or inline `style={{}}` attributes.
+- **Lucide Icons:** Use `lucide-react` for all visual icons, indicators, and action triggers.
+
+## TypeScript Standards
+- Enforce strict typing with zero usage of `any`.
+- Name prop interfaces following the `[ComponentName]Props` convention (e.g., `LinkCardProps`).

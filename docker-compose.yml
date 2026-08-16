@@ -4,21 +4,21 @@ services:
     ports:
       - "6379:6379"
   ai:
-    build: ./services/ai
+    build: ./backend
     ports:
       - "8000:8000"
     env_file:
-      - ./services/ai/.env
+      - ./backend/.env
     environment:
       REDIS_URL: redis://redis:6379/0
     depends_on:
       - redis
   worker:
-    build: ./services/ai
+    build: ./backend
     command: celery -A app.celery_app worker --beat --loglevel=info
     working_dir: /app
     env_file:
-      - ./services/ai/.env
+      - ./backend/.env
     environment:
       REDIS_URL: redis://redis:6379/0
       C_FORCE_ROOT: "true"

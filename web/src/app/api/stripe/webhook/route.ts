@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { getStripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { stripeSignatureSchema, stripeWebhookBodySchema } from "@/lib/schemas";
 
 export const runtime = "nodejs";
 
@@ -43,11 +44,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Stripe webhook not configured" }, { status: 503 });
   }
 
-  const body = await request.text();
-  const signature = request.headers.get("stripe-signature");
-  if (!signature) {
+  const bodyParsed = stripeWebhookBodySchema.safeParse(await request.text());
+  const signatureParsed = stripeSignatureSchema.safeParse(
+    request.headers.get("stripe-signature"),
+  );
+  if (!bodyParsed.success || !signatureParsed.success) {
     return NextResponse.json({ error: "Missing signature" }, { status: 400 });
   }
+  const body = bodyParsed.data;
+  const signature = signatureParsed.data;
 
   let event: Stripe.Event;
   try {

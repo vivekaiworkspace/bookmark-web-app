@@ -1,0 +1,19 @@
+---
+description: High-level architectural map, core stack conventions, and documentation references.
+globs: *
+alwaysApply: true
+---
+
+# Global Project Architecture & Context
+
+## Monorepo Layout & Responsibilities
+- `web/`: Next.js (App Router), React 19, TypeScript, Tailwind CSS, Shadcn UI.
+- `backend/`: Python FastAPI microservice, Celery task workers, Redis message queue, Trafilatura scraping.
+- `extension/`: Chrome Extension (Manifest V3) for single-click URL ingestion.
+- `supabase/`: PostgreSQL schema migrations, RLS policies, `pg_cron` jobs, and `pgvector` indexes.
+- `Plan/`: Master PRD, milestone plans, and roadmap specifications.
+- `Documentation/`: API documentation, implementation logs, and architectural runbooks.
+
+## Source of Truth
+- Always anchor schema and feature implementations to `Requirments/Smart_Bookmark_Manager_Master_PRD.md`.
+- Never invent database columns or modify data contracts without updating the documentation in `Plan/`.

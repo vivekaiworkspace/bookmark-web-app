@@ -18,7 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { normalizeUrl } from "@/lib/utils";
+import { normalizeUrl, cn } from "@/lib/utils";
+import { swatchBgClass } from "@/lib/colors";
 import { toast } from "sonner";
 
 type Meta = {
@@ -168,12 +169,10 @@ export function SaveLinkDialog({
                       <button
                         key={tag.id}
                         type="button"
-                        className="rounded-full border px-2 py-0.5 text-xs"
-                        style={
-                          on
-                            ? { backgroundColor: tag.color, color: "white", borderColor: "transparent" }
-                            : undefined
-                        }
+                        className={cn(
+                          "rounded-full border px-2 py-0.5 text-xs",
+                          on && `border-transparent text-white ${swatchBgClass(tag.color)}`,
+                        )}
                         onClick={() =>
                           setTagIds((ids) =>
                             on ? ids.filter((id) => id !== tag.id) : [...ids, tag.id],

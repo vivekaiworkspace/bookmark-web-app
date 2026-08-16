@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requirePro } from "@/lib/plan-server";
 import { embedText } from "@/lib/embeddings";
+import { askBodySchema } from "@/lib/schemas";
 
 type Match = {
   id: string;
@@ -17,11 +18,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: gated.error }, { status: gated.status });
   }
 
-  const body = (await request.json()) as { question?: string };
-  const question = body.question?.trim() ?? "";
-  if (question.length < 4) {
+  const parsed = askBodySchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) {
     return NextResponse.json({ error: "Ask a longer question" }, { status: 400 });
   }
+  const question = parsed.data.question.trim();
 
   const embedding = await embedText(question);
   if (!embedding) {

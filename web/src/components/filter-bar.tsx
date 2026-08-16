@@ -4,6 +4,24 @@ import type { SortMode, Tag, TagLogic } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { swatchBgClass } from "@/lib/colors";
+
+export type FilterBarProps = {
+  tags: Tag[];
+  selectedTagIds: string[];
+  onToggleTag: (id: string) => void;
+  tagLogic: TagLogic;
+  onTagLogic: (logic: TagLogic) => void;
+  query: string;
+  onQuery: (q: string) => void;
+  sort: SortMode;
+  onSort: (s: SortMode) => void;
+  semantic: boolean;
+  onSemantic: (on: boolean) => void;
+  canSemantic: boolean;
+  onAsk: () => void;
+  asking: boolean;
+};
 
 export function FilterBar({
   tags,
@@ -20,22 +38,7 @@ export function FilterBar({
   canSemantic,
   onAsk,
   asking,
-}: {
-  tags: Tag[];
-  selectedTagIds: string[];
-  onToggleTag: (id: string) => void;
-  tagLogic: TagLogic;
-  onTagLogic: (logic: TagLogic) => void;
-  query: string;
-  onQuery: (q: string) => void;
-  sort: SortMode;
-  onSort: (s: SortMode) => void;
-  semantic: boolean;
-  onSemantic: (on: boolean) => void;
-  canSemantic: boolean;
-  onAsk: () => void;
-  asking: boolean;
-}) {
+}: FilterBarProps) {
   return (
     <div className="space-y-3 border-b px-6 py-4">
       <div className="flex flex-wrap items-center gap-3">
@@ -107,9 +110,10 @@ export function FilterBar({
                 onClick={() => onToggleTag(tag.id)}
                 className={cn(
                   "rounded-full border px-2.5 py-0.5 text-xs",
-                  on ? "border-transparent text-white" : "bg-background",
+                  on
+                    ? cn("border-transparent text-white", swatchBgClass(tag.color))
+                    : "bg-background",
                 )}
-                style={on ? { backgroundColor: tag.color } : undefined}
               >
                 {tag.name}
               </button>

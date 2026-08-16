@@ -2,13 +2,13 @@ import logging
 import re
 
 import httpx
-import tiktoken
 import trafilatura
 from lxml import html as lxml_html
 from readability import Document
 
 from app.config import settings
 from app.ssrf import UnsafeUrlError, assert_public_http_url
+from app.tokens import truncate_tokens
 
 logger = logging.getLogger(__name__)
 
@@ -36,15 +36,6 @@ def _attr(html: str, names: list[str]) -> str | None:
         if match:
             return match.group(1)
     return None
-
-
-def truncate_tokens(text: str, cap: int | None = None) -> str:
-    cap = cap or settings.token_cap
-    enc = tiktoken.get_encoding("cl100k_base")
-    tokens = enc.encode(text)
-    if len(tokens) <= cap:
-        return text
-    return enc.decode(tokens[:cap])
 
 
 def _extract_html(raw: str) -> str:

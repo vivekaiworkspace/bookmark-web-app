@@ -1,0 +1,19 @@
+---
+description: Monorepo layout and how web, backend, and extension share data
+alwaysApply: true
+---
+
+# Architecture
+
+This repo is three apps plus shared Postgres:
+
+- `web/` — Next.js 16 App Router (UI, auth cookies, billing, enqueue to FastAPI)
+- `backend/` — FastAPI + Celery (scrape, auto-tag, embeddings jobs)
+- `extension/` — Chrome Manifest V3 (save current tab)
+- `supabase/migrations/` — schema and RLS (source of truth)
+
+Do not mix stacks: no Python in `web/`, no Next routes in `backend/`, no service-role keys in the extension.
+
+Data flow: Extension and web write through Supabase Auth + RLS. After a save, Next.js POSTs FastAPI with `AI_SERVICE_SECRET`. FastAPI enqueues Celery. Workers use the service role. The extension never talks to Redis or FastAPI.
+
+Local: `cd web && npm run dev` (port 3000). `docker compose up` from the repo root for Redis + FastAPI (port 8000) + worker.

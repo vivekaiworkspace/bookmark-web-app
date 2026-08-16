@@ -2,9 +2,9 @@
 
 **New here?** Read the [user guide](documentation/README.md) (getting started, sign-in, workspace, extension).
 
-Phase 1 MVP is **complete**. Phase 2 is in draft [PR #3](https://github.com/vivekaiworkspace/bookmark-web-app/pull/3). Phase 3 is on branch `cursor/phase-3-productivity-monetization`.
+Phase 1–3 product work is **implemented**. Current branch: `cursor/rules-compliance-refresh` (Cursor rules, tests, and docs alignment).
 
-Full roadmap: [Plan/MASTER_PLAN.md](Plan/MASTER_PLAN.md).
+Full roadmap: [Plan/MASTER_PLAN.md](Plan/MASTER_PLAN.md). Architecture: [documentation/ARCHITECTURE.md](documentation/ARCHITECTURE.md).
 
 ## What you can do
 
@@ -20,12 +20,10 @@ Full roadmap: [Plan/MASTER_PLAN.md](Plan/MASTER_PLAN.md).
 ## Project layout
 
 ```
-src/app/             Web app (login, workspace, settings, digests, read-today, billing APIs)
-src/components/      UI and workspace features
-src/lib/supabase/    Supabase browser/server clients + session proxy
-supabase/migrations  Phase 1–3 SQL
-services/ai          FastAPI + Celery workers (scrape, tag, embed)
+web/                 Next.js app (login, workspace, settings, digests, read-today, billing APIs)
+backend/             FastAPI + Celery workers (scrape, tag, embed)
 extension/           Unpacked Chrome/Edge/Brave extension
+supabase/migrations  Phase 1–3 SQL
 docker-compose.yml   Redis + API + worker
 ```
 
@@ -34,30 +32,33 @@ Live Supabase project: **Smart Bookmark Manager** (`xpfkucssbdybylfcdqis`).
 ## Run the web app
 
 ```bash
+cd web
 npm install
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
 
+If you deploy the web app with Vercel, set the project **Root Directory** to `web`.
+
 Env files:
 
-- [`.env.example`](.env.example) — template (AI, Stripe, Resend, VAPID, `CRON_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`)
-- `.env.local` — local keys (gitignored)
-- [`services/ai/.env.example`](services/ai/.env.example) — Python service
+- [`web/.env.example`](web/.env.example) — template (AI, Stripe, Resend, VAPID, `CRON_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`)
+- `web/.env.local` — local keys (gitignored)
+- [`backend/.env.example`](backend/.env.example) — Python service
 - [`extension/config.js`](extension/config.js) — same URL and anon key for the extension
 
 Set `NEXT_PUBLIC_GOOGLE_AUTH=true` to show **Continue with Google**.
 
 ### AI (Phase 2)
 
-**Digests (no Docker):** add optional `OPENAI_API_KEY` to `.env.local`. Open **Digests** → **Run now**. Without that key you still get a markdown list of recent links.
+**Digests (no Docker):** add optional `OPENAI_API_KEY` to `web/.env.local`. Open **Digests** → **Run now**. Without that key you still get a markdown list of recent links.
 
 **Background scrape and auto-tag** need the Python stack:
 
-1. Copy `services/ai/.env.example` to `services/ai/.env`.
+1. Copy `backend/.env.example` to `backend/.env`.
 2. Set `SUPABASE_SERVICE_ROLE_KEY` (Dashboard → Settings → API) and `OPENAI_API_KEY`.
-3. Use the same `AI_SERVICE_SECRET` as `.env.local`.
+3. Use the same `AI_SERVICE_SECRET` as `web/.env.local`.
 4. Start Redis, API, and worker:
 
 ```bash
@@ -70,12 +71,12 @@ API: [http://localhost:8000/health](http://localhost:8000/health). Without this 
 
 ### Phase 3 (billing, reminders, search)
 
-Copy new keys from `.env.example` into `.env.local`:
+Copy new keys from `web/.env.example` into `web/.env.local`:
 
 - Stripe: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRO_PRICE_ID`. Forward webhooks with `stripe listen --forward-to localhost:3000/api/stripe/webhook`.
 - Email: `RESEND_API_KEY`, `RESEND_FROM`.
 - Push: `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (`npx web-push generate-vapid-keys`).
-- Notify cron: `CRON_SECRET` (same value in `services/ai/.env` as `CRON_SECRET`) and `SUPABASE_SERVICE_ROLE_KEY` for webhook/plan writes.
+- Notify cron: `CRON_SECRET` (same value in `backend/.env` as `CRON_SECRET`) and `SUPABASE_SERVICE_ROLE_KEY` for webhook/plan writes.
 
 Schema: [`supabase/migrations/001_phase1.sql`](supabase/migrations/001_phase1.sql), [`002_phase2.sql`](supabase/migrations/002_phase2.sql), and [`003_phase3.sql`](supabase/migrations/003_phase3.sql) (applied on the remote project).
 
@@ -90,7 +91,7 @@ Schema: [`supabase/migrations/001_phase1.sql`](supabase/migrations/001_phase1.sq
 
 ## Test the extension
 
-1. Keep `npm run dev` running.
+1. Keep `npm run dev` running from `web/`.
 2. Chrome / Edge / Brave → `chrome://extensions` → **Developer mode** → **Load unpacked** → select the `extension/` folder.
 3. Pin **Smart Bookmark Manager**, click it → **Sign in**.
 4. After login, the `/extension-auth` page tries to send the session to the extension. If it says connected, close the tab and open the popup again. If not, copy the session JSON from that page into the popup and click **Store session**.

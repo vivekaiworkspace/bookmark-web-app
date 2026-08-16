@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { faviconForDomain, hostnameFromUrl, normalizeUrl } from "@/lib/utils";
+import { extractMetaBodySchema } from "@/lib/schemas";
 
 function attr(html: string, names: string[]) {
   for (const name of names) {
@@ -47,8 +48,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = (await request.json()) as { url?: string };
-  const url = normalizeUrl(body.url ?? "");
+  const parsed = extractMetaBodySchema.safeParse(
+    await request.json().catch(() => null),
+  );
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
+  }
+  const url = normalizeUrl(parsed.data.url);
   try {
     new URL(url);
   } catch {

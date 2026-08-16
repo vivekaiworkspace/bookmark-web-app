@@ -6,8 +6,8 @@ Single source of truth for phases, steps, and progress. Split phase notes remain
 | :--- | :--- |
 | **Product** | Smart Bookmark Manager |
 | **Repo** | [vivekaiworkspace/bookmark-web-app](https://github.com/vivekaiworkspace/bookmark-web-app) |
-| **Current work** | Phase 3 on `cursor/phase-3-productivity-monetization` (after Phase 2) |
-| **Updated** | 2026-08-15 |
+| **Current work** | Rules alignment on `cursor/rules-compliance-refresh` (Phases 1–3 already implemented) |
+| **Updated** | 2026-08-16 |
 
 **Documentation rule:** When a phase’s implementation is finished, update every relevant file in [`documentation/`](../documentation/) (user guides, limits, troubleshooting) **before** marking that phase complete. New users should be able to use the new features from those guides alone.
 
@@ -36,7 +36,7 @@ Single source of truth for phases, steps, and progress. Split phase notes remain
 **Phase 2**
 
 - [x] `002_phase2.sql`: `ai_summaries`, `user_ai_settings`, scrape/auto-tag status, suggested-tag columns, RLS
-- [x] FastAPI service (`services/ai/`): extract, auto-tag, digest + service-role writes
+- [x] FastAPI service (`backend/`): extract, auto-tag, digest + service-role writes
 - [x] Trafilatura + Readability scrape, Playwright fallback, tiktoken 4k–6k, persist `content_raw`
 - [x] Redis + Celery in repo; enqueue on save (Next.js → FastAPI when up); extension via pending poll
 - [ ] `pg_cron` against a public FastAPI URL (optional; Celery beat when Docker is running)
@@ -79,7 +79,7 @@ Single source of truth for phases, steps, and progress. Split phase notes remain
 | :--- | :--- |
 | GitHub | `vivekaiworkspace/bookmark-web-app` (`main`) |
 | App | Next.js 16 App Router, TypeScript, Tailwind, shadcn-style UI |
-| Auth session | [`src/proxy.ts`](../src/proxy.ts) (Next.js 16; replaces `middleware.ts`) |
+| Auth session | [`web/src/proxy.ts`](../web/src/proxy.ts) (Next.js 16; replaces `middleware.ts`) |
 | Database | Supabase project **Smart Bookmark Manager** (`xpfkucssbdybylfcdqis`) |
 | API URL | `https://xpfkucssbdybylfcdqis.supabase.co` |
 | Region | `ap-northeast-1` |
@@ -95,7 +95,7 @@ Single source of truth for phases, steps, and progress. Split phase notes remain
 - Local testing: turn **Confirm email** off, or confirm users before sign-in
 - `NEXT_PUBLIC_GOOGLE_AUTH=true` to show Continue with Google
 
-Do not commit `.env.local`. Match anon key in [`extension/config.js`](../extension/config.js).
+Do not commit `web/.env.local`. Match anon key in [`extension/config.js`](../extension/config.js).
 
 ---
 
@@ -179,10 +179,10 @@ PRD weeks 1–3. Merged [PR #1](https://github.com/vivekaiworkspace/bookmark-web
 ### Layout
 
 ```
-src/app/             Web (login, workspace, auth callback, extract-meta, extension-auth)
-src/components/      UI + workspace
-src/lib/supabase/    Browser/server clients + session helper
-src/proxy.ts         Auth gate
+web/src/app/         Web (login, workspace, auth callback, extract-meta, extension-auth)
+web/src/components/  UI + workspace
+web/src/lib/supabase/ Browser/server clients + session helper
+web/src/proxy.ts     Auth gate
 supabase/migrations  Phase 1 SQL
 extension/           MV3 popup + background
 ```
@@ -210,7 +210,7 @@ Draft PR: [#3](https://github.com/vivekaiworkspace/bookmark-web-app/pull/3). Det
    - `links.scrape_status`, `links.auto_tag_status` (`pending` \| `ready` \| `failed`)
    - Also: `suggested_tag_names`, optional `suggested_collection_id`, optional `scrape_error` (needed for apply/dismiss UI)
    - Skip `vector` / `embedding` until Phase 3
-2. FastAPI in `services/ai/`
+2. FastAPI in `backend/`
    - `POST /api/v1/extract` — Trafilatura → Readability → Playwright; tiktoken 4,000–6,000 tokens
    - `POST /api/v1/auto-tag` — map to existing tags, suggest up to 3 new, optional collection; honor 10-tag free cap when inserting
    - Digest worker — links in the last period (`created_at`), custom prompt, write `ai_summaries`
@@ -306,5 +306,6 @@ Phase 1 already enforces 3 collections / 10 tags in the UI.
 | [phase-1-mvp.md](phase-1-mvp.md) | Phase 1 detail (archived snapshot) |
 | [phase-2-ai-microservice.md](phase-2-ai-microservice.md) | Phase 2 detail |
 | [phase-3-productivity-monetization.md](phase-3-productivity-monetization.md) | Phase 3 detail |
+| [schema-divergence.md](schema-divergence.md) | Extra columns/tables vs PRD DDL |
 | [`supabase/migrations/001_phase1.sql`](../supabase/migrations/001_phase1.sql) | Phase 1 schema |
 | [`supabase/migrations/003_phase3.sql`](../supabase/migrations/003_phase3.sql) | Phase 3 schema (applied live) |

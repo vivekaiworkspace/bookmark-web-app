@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { enqueueBodySchema } from "@/lib/schemas";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -10,11 +11,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = (await request.json()) as { linkId?: string; force?: boolean };
-  const linkId = body.linkId;
-  if (!linkId) {
-    return NextResponse.json({ error: "linkId required" }, { status: 400 });
+  const parsed = enqueueBodySchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
+  const { linkId, force } = parsed.data;
 
   const { data: link, error } = await supabase
     .from("links")
@@ -27,7 +28,7 @@ export async function POST(request: Request) {
   }
 
   if (
-    !body.force &&
+    !force &&
     link.scrape_status === "ready" &&
     (link.content_raw ?? "").trim()
   ) {
@@ -53,7 +54,7 @@ export async function POST(request: Request) {
       type: "extract_and_tag",
       link_id: link.id,
       user_id: user.id,
-      force: Boolean(body.force),
+      force: Boolean(force),
     }),
   });
   if (!res.ok) {

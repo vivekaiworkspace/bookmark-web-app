@@ -1,0 +1,19 @@
+---
+description: Testing standards for Next.js (Vitest), FastAPI (Pytest), and Chrome Extension.
+globs: web/**/__tests__/**/*.{ts,tsx}, web/**/*.test.{ts,tsx}, backend/tests/**/*.py, extension/**/*.test.{ts,js}
+alwaysApply: false
+---
+
+# Testing & Quality Assurance Standards
+
+## Frontend Testing (Next.js)
+- Framework: Vitest + React Testing Library + `@testing-library/user-event`.
+- Test user interactions rather than internal implementation details.
+- Query priority: `getByRole` > `getByLabelText` > `getByPlaceholderText` > `getByTestId`.
+- Mock Supabase client calls; do not execute live network calls in unit tests.
+
+## Backend Testing (FastAPI)
+- Framework: `pytest` + `pytest-asyncio` + `httpx.AsyncClient`.
+- Mock third-party LLM APIs (OpenAI/Anthropic) using `unittest.mock.patch` or `respx`.
+- Mock external network requests during scraping tests.
+- Test all HTTP error response codes explicitly (`400`, `401`, `422`, `500`).

@@ -1,0 +1,8 @@
+{
+  "name": "smart-bookmark-extension",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test url.test.js"
+  }
+}

@@ -1,0 +1,30 @@
+---
+description: Mandatory audit, test execution, and documentation logging required after completing any development phase.
+alwaysApply: true
+---
+
+# Phase-Completion & Documentation Protocol
+
+Upon completing any development phase (e.g., Phase 1 MVP, Phase 2 AI Pipeline, Phase 3 Monetization), execute this 4-step checklist:
+
+## Step 1: Execute Automated Test Suites
+- Frontend: `npm run test` (Vitest) and `npm run type-check` (tsc) within `web/`.
+- Backend: `pytest --maxfail=1 --disable-warnings` within `backend/`.
+- Ensure 100% pass rate with zero TypeScript compiler errors.
+
+## Step 2: PRD Alignment Audit
+- Cross-reference implemented features against `Plan/Smart_Bookmark_Manager_Master_PRD.md`.
+- Verify database schemas, RLS policies, and API contracts match the master specification without undocumented divergence.
+
+## Step 3: API & Environment Documentation
+- Ensure FastAPI endpoints have complete docstrings and schemas exposed on `/docs`.
+- Update `.env.example` files in `web/` and `backend/` with any new configuration keys.
+
+## Step 4: Update Implementation Log
+Append a completion entry into `Documentation/IMPLEMENTATION_LOG.md`:
+```markdown
+### [Phase X: Title] - Completed YYYY-MM-DD
+* **Implemented Components:** List modules, UI cards, or workers built.
+* **Database Migrations Added:** List executed SQL scripts in `supabase/migrations/`.
+* **Test Coverage Summary:** Verification status of unit and integration tests.
+* **Next Phase Prerequisites:** Dependencies required for the next sprint.

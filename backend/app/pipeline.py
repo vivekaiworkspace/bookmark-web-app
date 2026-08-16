@@ -3,7 +3,6 @@ from datetime import datetime, timedelta, timezone
 
 from app.db import get_db
 from app.llm import embed_text, suggest_tags, write_digest
-from app.scrape import scrape_url
 from app.ssrf import UnsafeUrlError
 
 logger = logging.getLogger(__name__)
@@ -50,6 +49,8 @@ def extract_content(link_id: str, user_id: str, force: bool = False) -> dict:
 
     db = get_db()
     try:
+        from app.scrape import scrape_url
+
         result = scrape_url(row["url"])
     except UnsafeUrlError as exc:
         db.table("links").update(

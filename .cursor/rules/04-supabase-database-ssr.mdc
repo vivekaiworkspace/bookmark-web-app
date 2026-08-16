@@ -1,0 +1,18 @@
+---
+description: Supabase SSR client management, PostgreSQL migrations, RLS policies, and pgvector operations.
+globs: supabase/**/*.sql, web/lib/supabase/**/*.{ts,js}, web/app/api/**/*.{ts,js}
+alwaysApply: false
+---
+
+# Supabase & PostgreSQL Security Standards
+
+## Authentication & SSR Setup
+- Use `@supabase/ssr` exclusively. Never import deprecated `@supabase/auth-helpers-nextjs`.
+- Always use `getAll` and `setAll` methods inside server cookie handlers and middleware.
+- Validate authenticated sessions using `const { data: { user } } = await supabase.auth.getUser()`. Never rely on `getSession()` in server contexts.
+
+## Database & Security Rules
+- **Row Level Security (RLS):** Every migration in `supabase/migrations/` must explicitly enable RLS (`alter table <table_name> enable row level security;`).
+- **Tenant Isolation:** Enforce multi-tenant boundaries on all CRUD policies using `auth.uid() = user_id`.
+- **Junction Security:** Secure `link_tags` junction operations using `exists (select 1 from public.links where id = link_tags.link_id and user_id = auth.uid())`.
+- **Vector Search:** Embeddings must use the `vector(1536)` datatype and cosine distance operator (`<=>`).

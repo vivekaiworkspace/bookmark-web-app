@@ -1,4 +1,5 @@
 import { APP_URL } from "./config.js";
+import { extensionAuthUrl, parseSessionPayload } from "./session.js";
 
 const statusEl = document.getElementById("status");
 const form = document.getElementById("save-form");
@@ -13,20 +14,16 @@ function show(el, visible) {
 }
 
 signin.addEventListener("click", () => {
-  const url = `${APP_URL}/login?next=${encodeURIComponent(`/extension-auth?id=${chrome.runtime.id}`)}`;
+  const url = extensionAuthUrl(APP_URL, chrome.runtime.id);
   chrome.tabs.create({ url });
 });
 
 document.getElementById("save-session").addEventListener("click", async () => {
   const raw = document.getElementById("session-json").value.trim();
   try {
-    const parsed = JSON.parse(raw);
+    const parsed = parseSessionPayload(raw);
     await chrome.storage.local.set({
-      session: {
-        access_token: parsed.access_token,
-        refresh_token: parsed.refresh_token,
-        expires_at: parsed.expires_at,
-      },
+      session: parsed,
     });
     message.textContent = "Session stored.";
     await boot();

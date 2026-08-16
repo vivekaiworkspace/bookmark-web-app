@@ -10,13 +10,15 @@ import { toast } from "sonner";
 
 const googleEnabled = process.env.NEXT_PUBLIC_GOOGLE_AUTH === "true";
 
+export type LoginFormProps = {
+  nextPath: string;
+  errorMessage?: string;
+};
+
 export function LoginForm({
   nextPath,
   errorMessage,
-}: {
-  nextPath: string;
-  errorMessage?: string;
-}) {
+}: LoginFormProps) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

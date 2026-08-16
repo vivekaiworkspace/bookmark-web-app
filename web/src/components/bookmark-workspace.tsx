@@ -1,17 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { collectionLimit, isPro as planIsPro, tagLimit } from "@/lib/plan";
 import { COLLECTION_COLORS, TAG_COLORS } from "@/lib/colors";
+import { filterBookmarks } from "@/lib/filter-bookmarks";
+import {
+  loadWorkspaceSnapshot,
+  type WorkspaceSnapshot,
+} from "@/lib/workspace-data";
 import type {
   Bookmark,
-  Collection,
-  LinkRow,
-  LinkTag,
-  Note,
-  Plan,
-  Reminder,
   SortMode,
   Tag,
   TagLogic,
@@ -19,43 +18,27 @@ import type {
 import { CollectionSidebar } from "@/components/collection-sidebar";
 import { FilterBar } from "@/components/filter-bar";
 import { LinkCard } from "@/components/link-card";
+import { LinkCardGrid } from "@/components/link-card-grid";
 import { SaveLinkDialog } from "@/components/save-link-dialog";
 import { LinkDetailDialog } from "@/components/link-detail-dialog";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Bookmark as BookmarkIcon, LogOut, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-function assemble(
-  links: LinkRow[],
-  tags: Tag[],
-  linkTags: LinkTag[],
-  notes: Note[],
-): Bookmark[] {
-  const tagsById = new Map(tags.map((t) => [t.id, t]));
-  const tagsByLink = new Map<string, Tag[]>();
-  for (const row of linkTags) {
-    const tag = tagsById.get(row.tag_id);
-    if (!tag) continue;
-    const list = tagsByLink.get(row.link_id) ?? [];
-    list.push(tag);
-    tagsByLink.set(row.link_id, list);
-  }
-  const noteByLink = new Map(notes.map((n) => [n.link_id, n.content ?? ""]));
-  return links.map((link) => ({
-    ...link,
-    tags: tagsByLink.get(link.id) ?? [],
-    note: noteByLink.get(link.id) ?? "",
-  }));
-}
+export type BookmarkWorkspaceProps = {
+  email: string;
+  initial: WorkspaceSnapshot;
+};
 
-export function BookmarkWorkspace({ email }: { email: string }) {
+export function BookmarkWorkspace({ email, initial }: BookmarkWorkspaceProps) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
-  const [collections, setCollections] = useState<Collection[]>([]);
-  const [tags, setTags] = useState<Tag[]>([]);
-  const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
+  const [collections, setCollections] = useState(initial.collections);
+  const [tags, setTags] = useState(initial.tags);
+  const [bookmarks, setBookmarks] = useState(initial.bookmarks);
   const [activeCollectionId, setActiveCollectionId] = useState<string | "all">(
     "all",
   );
@@ -65,57 +48,28 @@ export function BookmarkWorkspace({ email }: { email: string }) {
   const [query, setQuery] = useState("");
   const [saveOpen, setSaveOpen] = useState(false);
   const [activeLink, setActiveLink] = useState<Bookmark | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [plan, setPlan] = useState<Plan>("free");
-  const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [plan, setPlan] = useState(initial.plan);
+  const [reminders, setReminders] = useState(initial.reminders);
   const [semantic, setSemantic] = useState(false);
   const [semanticIds, setSemanticIds] = useState<string[] | null>(null);
   const [asking, setAsking] = useState(false);
   const [askAnswer, setAskAnswer] = useState<string | null>(null);
+  const listRef = useRef<HTMLElement>(null);
 
   const colLimit = collectionLimit(plan);
   const tagCap = tagLimit(plan);
   const pro = planIsPro(plan);
 
   const load = useCallback(async () => {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) return;
-
-    await supabase.rpc("ensure_inbox");
-
-    const [cRes, tRes, lRes, ltRes, nRes, pRes, rRes] = await Promise.all([
-      supabase.from("collections").select("*").order("sort_order").order("created_at"),
-      supabase.from("tags").select("*").order("name"),
-      supabase.from("links").select("*").order("created_at", { ascending: false }),
-      supabase.from("link_tags").select("*"),
-      supabase.from("notes").select("*"),
-      supabase.from("profiles").select("plan").eq("user_id", userData.user.id).maybeSingle(),
-      supabase.from("reminders").select("*").eq("status", "pending"),
-    ]);
-
-    if (cRes.error) toast.error(cRes.error.message);
-    if (tRes.error) toast.error(tRes.error.message);
-    if (lRes.error) toast.error(lRes.error.message);
-
-    const cols = (cRes.data ?? []) as Collection[];
-    setCollections(cols);
-    setTags((tRes.data ?? []) as Tag[]);
-    setPlan(pRes.data?.plan === "pro" ? "pro" : "free");
-    setReminders((rRes.data ?? []) as Reminder[]);
-    setBookmarks(
-      assemble(
-        (lRes.data ?? []) as LinkRow[],
-        (tRes.data ?? []) as Tag[],
-        (ltRes.data ?? []) as LinkTag[],
-        (nRes.data ?? []) as Note[],
-      ),
-    );
+    const snapshot = await loadWorkspaceSnapshot(supabase);
+    setCollections(snapshot.collections);
+    setTags(snapshot.tags);
+    setPlan(snapshot.plan);
+    setReminders(snapshot.reminders);
+    setBookmarks(snapshot.bookmarks);
     setLoading(false);
   }, [supabase]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
 
   useEffect(() => {
     setActiveLink((curr) => {
@@ -133,50 +87,29 @@ export function BookmarkWorkspace({ email }: { email: string }) {
     return () => clearInterval(timer);
   }, [bookmarks, load]);
 
-  const visible = useMemo(() => {
-    let list = bookmarks;
-    if (activeCollectionId !== "all") {
-      list = list.filter((b) => b.collection_id === activeCollectionId);
-    }
-    if (selectedTagIds.length) {
-      list = list.filter((b) => {
-        const ids = new Set(b.tags.map((t) => t.id));
-        if (tagLogic === "and") {
-          return selectedTagIds.every((id) => ids.has(id));
-        }
-        return selectedTagIds.some((id) => ids.has(id));
-      });
-    }
-    const q = query.trim().toLowerCase();
-    if (semantic && semanticIds) {
-      const order = new Map(semanticIds.map((id, i) => [id, i]));
-      list = list.filter((b) => order.has(b.id));
-      list.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
-      return list;
-    }
-    if (q) {
-      list = list.filter((b) =>
-        [b.title, b.url, b.domain ?? "", b.note]
-          .join(" ")
-          .toLowerCase()
-          .includes(q),
-      );
-    }
-    const copy = [...list];
-    copy.sort((a, b) => {
-      if (sort === "favorites") {
-        if (a.is_favorite !== b.is_favorite) return a.is_favorite ? -1 : 1;
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      }
-      if (sort === "accessed") {
-        const av = a.last_accessed_at ? new Date(a.last_accessed_at).getTime() : 0;
-        const bv = b.last_accessed_at ? new Date(b.last_accessed_at).getTime() : 0;
-        return bv - av;
-      }
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-    });
-    return copy;
-  }, [bookmarks, activeCollectionId, selectedTagIds, tagLogic, query, sort, semantic, semanticIds]);
+  const visible = useMemo(
+    () =>
+      filterBookmarks({
+        bookmarks,
+        activeCollectionId,
+        selectedTagIds,
+        tagLogic,
+        query,
+        sort,
+        semantic,
+        semanticIds,
+      }),
+    [
+      bookmarks,
+      activeCollectionId,
+      selectedTagIds,
+      tagLogic,
+      query,
+      sort,
+      semantic,
+      semanticIds,
+    ],
+  );
 
   async function addCollection(name: string, color: string) {
     if (collections.length >= colLimit) {
@@ -595,9 +528,13 @@ export function BookmarkWorkspace({ email }: { email: string }) {
             </Button>
           </div>
         ) : null}
-        <section className="flex-1 overflow-auto p-6">
+        <section ref={listRef} className="flex-1 overflow-auto p-6">
           {loading ? (
-            <p className="text-sm text-muted-foreground">Loading bookmarks…</p>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              <Skeleton className="h-56 w-full" />
+              <Skeleton className="h-56 w-full" />
+              <Skeleton className="h-56 w-full" />
+            </div>
           ) : visible.length === 0 ? (
             <div className="rounded-xl border border-dashed p-12 text-center">
               <p className="font-medium">No links yet</p>
@@ -606,17 +543,18 @@ export function BookmarkWorkspace({ email }: { email: string }) {
               </p>
             </div>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {visible.map((link) => (
+            <LinkCardGrid
+              items={visible}
+              scrollRef={listRef}
+              renderCard={(link) => (
                 <LinkCard
-                  key={link.id}
                   link={link}
                   onOpen={() => void openLink(link)}
                   onFavorite={() => void toggleFavorite(link)}
                   onDetails={() => setActiveLink(link)}
                 />
-              ))}
-            </div>
+              )}
+            />
           )}
         </section>
       </main>

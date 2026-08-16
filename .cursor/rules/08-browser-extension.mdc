@@ -1,0 +1,14 @@
+---
+description: Manifest V3 extension conventions
+globs: extension/**
+alwaysApply: false
+---
+
+# Browser extension (`extension/`)
+
+- Manifest V3 only (`extension/manifest.json`). Popup + `background.js` service worker. No remote code.
+- Public config only in `extension/config.js` (web origin + Supabase URL and **anon** key). Never add the service role or `AI_SERVICE_SECRET`.
+- Session handoff: web page `/extension-auth` → extension (`externally_connectable` matches localhost). Fallback: paste session JSON in the popup.
+- The extension talks to Supabase with the user session and to the web origin. It must not call FastAPI or Redis.
+- Keep permissions minimal (`activeTab`, `storage`, `tabs`). Expand `host_permissions` only when the web origin changes.
+- After file changes, reload the unpacked extension on `chrome://extensions`.

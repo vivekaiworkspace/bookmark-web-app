@@ -1,0 +1,18 @@
+---
+description: Code review checklist for security, performance, and schema validation.
+globs: web/**/*.{ts,tsx}, backend/**/*.py, supabase/**/*.sql, extension/**/*.{ts,js,json}
+alwaysApply: false
+---
+
+# Code Review & Security Gate
+
+## Security Verification
+- Verify that every SQL table in `supabase/` has RLS enabled and enforces `auth.uid() = user_id`.
+- Ensure no private keys or service-role secrets are exposed under `NEXT_PUBLIC_` prefixes.
+- Sanitize incoming request payloads using Pydantic (FastAPI) or Zod (Next.js Server Actions).
+- Confirm `extension/manifest.json` requests only minimum necessary permissions.
+
+## Performance Verification
+- Verify that no blocking I/O or synchronous LLM requests run in FastAPI HTTP request handlers.
+- Ensure link card list components implement proper virtualization or memoization for large sets.
+- Confirm raw scraped text is token-truncated before LLM processing.
